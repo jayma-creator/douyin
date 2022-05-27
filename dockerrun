@@ -1,0 +1,41 @@
+先创建镜像，-t表示取别名 douyin
+docker build -t douyin .
+再运行，-p表示绑定， 主机端口：容器端口
+这里不用这个，用下面的link联合运行
+docker run -p 8080:8080 douyin
+
+docker数据库实例
+PASSWORD=密码
+docker run --name mysql8019 -p 13306:3306 -e MYSQL_ROOT_PASSWORD=333 -d mysql:8.0.19
+
+登录mysql
+docker exec -it mysql8019 mysql -p333
+
+创建对应的demo库
+CREATE DATABASE demo;
+
+--link方式，可以把两个容器关联起来
+这里是把douyin和数据库关联起来
+要把dsn改成
+dsn := "root:333@(mysql8019:3306)/demo?charset=utf8mb4&parseTime=True&loc=Local"
+再关联link运行
+docker run --link=mysql8019:mysql8019 -p 8080:8080 douyin
+
+http://127.0.0.1:8080/
+http://192.168.177.1:8080/
+
+
+# 列出所有运行容器
+docker-compose ps
+# 查看服务日志输出
+docker-compose logs
+# 构建或者重新构建服务
+docker-compose build
+# 启动指定服务已存在的容器
+docker-compose start eureka
+# 停止已运行的服务的容器
+docker-compose stop eureka
+# 删除指定服务的容器
+docker-compose rm eureka
+# 构建、启动容器
+docker-compose up
