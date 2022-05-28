@@ -60,18 +60,20 @@ func FavoriteActionService(c *gin.Context) {
 }
 
 func FavoriteListService(c *gin.Context) {
+
 	userId := c.Query("user_id")
 	//从点赞关系表中取出当前id的结构体
 	userFavoriteRelations := []UserFavoriteRelation{}
 	dao.DB.Where("user_id = ?", userId).Find(&userFavoriteRelations)
 	//从当前id的结构体中取出video_id字段，保存在切片中
 	videoIdSlice := []int64{}
-	for i := 0; i < len(videoIdSlice); i++ {
+	for i := 0; i < len(userFavoriteRelations); i++ {
 		videoIdSlice = append(videoIdSlice, userFavoriteRelations[i].VideoId)
 	}
 	//根据video_id找出对应的video结构体放在结构体切片中，并返回前端显示
 	videoList := []Video{}
 	dao.DB.Where(videoIdSlice).Find(&videoList)
+	fmt.Println(videoList)
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
@@ -202,9 +204,31 @@ func PublishService(c *gin.Context) {
 }
 func PublishListService(c *gin.Context) {
 	//封面问题还未解决
-	token := c.Query("token")
+	//token := c.Query("token")
+	userId := c.Query("user_id")
+	//匹配视频与作者
 	videoList := []Video{}
-	dao.DB.Where("publisher_token = ?", token).Find(&videoList)
+	dao.DB.Find(&videoList)
+
+	//发布的视频有publish_token，和当前用户的token对应起来
+	//根据publish_token取出对应的user结构体，赋值给video的Author
+	videoTokenSlice := []string{}
+	for i := 0; i < len(videoList); i++ {
+		videoTokenSlice = append(videoTokenSlice, videoList[i].PublisherToken)
+	}
+	//点进头像后正常显示发布信息
+	for i := 0; i < len(videoTokenSlice); i++ {
+		user := User{}
+		dao.DB.Where("token = ?", videoTokenSlice[i]).Find(&user)
+		videoList[i].Author = user
+	}
+
+	//再根据点进去的用户显示相对应发布的作品
+	videoList = []Video{}
+	user := User{}
+	dao.DB.Where("id = ?", userId).Find(&user)
+	dao.DB.Where("publisher_token = ?", user.Token).Find(&videoList)
+
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
