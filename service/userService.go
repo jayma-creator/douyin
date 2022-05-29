@@ -57,6 +57,8 @@ func RegisterService(c *gin.Context) {
 }
 
 func LoginService(c *gin.Context) {
+	//登录后先把所有用户的IsFollow改为false
+
 	//要添加user := User{} 才能重置count数
 	user := User{}
 	username := c.Query("username")
@@ -78,37 +80,25 @@ func LoginService(c *gin.Context) {
 			Token:    user.Token,
 		})
 	}
-	//如果当前登录的为ID1,1关注了2，那么从关注粉丝表里找出当前ID所关注了的对方ID
-	//然后根据对方ID在users表里更改对应id的ISfollow为true
-	//每次更改账号后都要运行一次
-	//每次换账号登录后都要重新运行一次的有:更新关注的显示，点赞的显示
-
-	//首先每次登陆账号,或切换账号要做的事：
-	//1.把所有用户的is_follow改为false  2.把所有视频的is_favorite改为false
-	//目前关掉软件重开可以正确显示，不关软件切换账号显示异常，但数据库有改动，客户端问题
-	dao.DB.Model(&User{}).Update("is_follow", false)
-	dao.DB.Model(&Video{}).Update("is_favorite", false)
-
 	//匹配当前登录的账号是否已关注别的账号
-	//拿出当前用户的关注粉丝表结构体
-	followFansRelations := []FollowFansRelation{}
-	dao.DB.Where("follow_id = ?", user.Id).Find(&followFansRelations)
-	//拿出当前用户关注的对方ID
-	temp := []int64{} //放对方用户的ID
-	for i := 0; i < len(followFansRelations); i++ {
-		temp = append(temp, followFansRelations[i].FollowerId)
+	users := []User{}
+	dao.DB.Table("users").
+		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ?", user.Id).
+		Scan(&users)
+	for i := 0; i < len(users); i++ {
+		users[i].IsFollow = true
+		dao.DB.Model(&User{}).Where("id = ?", users[i].Id).Update("is_follow", true)
 	}
-	//根据对方用户的ID找到相应的user，把is_follow改为true
-	dao.DB.Model(&User{}).Where(temp).Update("is_follow", true)
 
 	//匹配当前登录的账号是否已点赞视频
-	userFavoriteRelations := []UserFavoriteRelation{}
-	dao.DB.Where("user_id = ?", user.Id).Find(&userFavoriteRelations)
-	temp2 := []int64{}
-	for i := 0; i < len(userFavoriteRelations); i++ {
-		temp2 = append(temp2, userFavoriteRelations[i].VideoId)
+	videos := []Video{}
+	dao.DB.Table("videos").
+		Joins("join user_favorite_relations on video_id = videos.id and user_id = ?", user.Id).
+		Scan(&videos)
+	for i := 0; i < len(videos); i++ {
+		videos[i].IsFavorite = true
+		dao.DB.Model(&Video{}).Where("id = ?", videos[i].Id).Update("is_favorite", true)
 	}
-	dao.DB.Model(&Video{}).Where(temp2).Update("is_favorite", true)
 }
 
 func UserInfoService(c *gin.Context) {
@@ -128,6 +118,7 @@ func UserInfoService(c *gin.Context) {
 		})
 	}
 }
+
 func RelationActionService(c *gin.Context) {
 	user := User{}
 	token := c.Query("token")

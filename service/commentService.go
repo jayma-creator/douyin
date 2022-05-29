@@ -57,8 +57,8 @@ func CommentActionService(c *gin.Context) {
 		//video的comment_count-1
 		dao.DB.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count - ?", "1"))
 	}
-
 }
+
 func CommentListService(c *gin.Context) {
 	videoId := c.Query("video_id")
 	//取出所有当前视频的评论
