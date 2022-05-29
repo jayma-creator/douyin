@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/RaymondCode/simple-demo/dao"
+	"github.com/RaymondCode/simple-demo/router"
 	"github.com/RaymondCode/simple-demo/service"
 	"github.com/gin-gonic/gin"
 )
@@ -11,7 +12,7 @@ var U2 service.User
 
 func main() {
 	r := gin.Default()
-	initRouter(r)
+	router.InitRouter(r)
 	dao.InitDB()
 
 	dao.DB.AutoMigrate(&service.User{})

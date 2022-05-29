@@ -15,15 +15,6 @@ type VideoListResponse struct {
 	Response
 	VideoList []Video `json:"video_list"`
 }
-type CommentListResponse struct {
-	Response
-	CommentList []Comment `json:"comment_list,omitempty"`
-}
-
-type CommentActionResponse struct {
-	Response
-	Comment Comment `json:"comment,omitempty"`
-}
 
 func FavoriteActionService(c *gin.Context) {
 	user := User{}
@@ -60,20 +51,12 @@ func FavoriteActionService(c *gin.Context) {
 }
 
 func FavoriteListService(c *gin.Context) {
-
 	userId := c.Query("user_id")
-	//从点赞关系表中取出当前id的结构体
-	userFavoriteRelations := []UserFavoriteRelation{}
-	dao.DB.Where("user_id = ?", userId).Find(&userFavoriteRelations)
-	//从当前id的结构体中取出video_id字段，保存在切片中
-	videoIdSlice := []int64{}
-	for i := 0; i < len(userFavoriteRelations); i++ {
-		videoIdSlice = append(videoIdSlice, userFavoriteRelations[i].VideoId)
-	}
-	//根据video_id找出对应的video结构体放在结构体切片中，并返回前端显示
+	//取出当前用户的所有发布列表
 	videoList := []Video{}
-	dao.DB.Where(videoIdSlice).Find(&videoList)
-	fmt.Println(videoList)
+	dao.DB.Table("videos").
+		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and videos.deleted_at is null", userId).
+		Scan(&videoList)
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
@@ -82,77 +65,6 @@ func FavoriteListService(c *gin.Context) {
 	})
 }
 
-func CommentActionService(c *gin.Context) {
-	user := User{}
-	token := c.Query("token")
-	actionType := c.Query("action_type")
-	videoIdStr := c.Query("video_id")
-	videoId, _ := strconv.Atoi(videoIdStr)
-	count := 0
-	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
-	if count == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
-		return
-	}
-	if actionType == "1" {
-		text := c.Query("comment_text")
-		//新增评论
-		comment := Comment{
-			//User:       user, //User是结构体类型，该字段不会在数据库里创建，所以这里可以省略
-			Content:    text,
-			CreateDate: time.Now().Format("2006-01-02 15:04:05")[5:10], //按格式输出日期，5:10表示月-日  2006-01-02 15:04:05是官方定义的规定格式
-			UserToken:  token,
-			VideoId:    int64(videoId),
-		}
-		dao.DB.Create(&comment)
-		//为了能评论后即时显示用户名，这里手动赋值comment的User
-		comment.User = user
-		//video的comment_count+1
-		dao.DB.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", "1"))
-
-		c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
-			Comment: comment,
-		})
-
-	} else if actionType == "2" {
-		commentId := c.Query("comment_id")
-		dao.DB.Where("id = ?", commentId).Delete(&Comment{})
-		//video的comment_count-1
-		dao.DB.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count - ?", "1"))
-	}
-
-}
-func CommentListService(c *gin.Context) {
-	//把数据库里所有评论放在commentList内
-	commentList := []Comment{}
-	user := User{}
-	videoIdStr := c.Query("video_id")
-	videoId, _ := strconv.Atoi(videoIdStr)
-	token := c.Query("token")
-	dao.DB.Where("token = ?", token).Find(&user)
-
-	//根据当前播放的视频ID匹配对应的评论
-	//comment里的videoId要等于当前播放的Id
-	dao.DB.Where("video_id = ?", videoId).Find(&commentList)
-
-	//匹配评论与作者
-	//发表的评论有user_token，和当前用户的token对应起来
-	//根据user_token取出对应的user结构体，赋值给comment的User
-	commentTokenSlice := []string{}
-	for i := 0; i < len(commentList); i++ {
-		commentTokenSlice = append(commentTokenSlice, commentList[i].UserToken)
-	}
-	//循环取出User结构体,赋给相对应的comment，通俗点说就是发布者匹配
-	for i := 0; i < len(commentTokenSlice); i++ {
-		user := User{}
-		dao.DB.Where("token = ?", commentTokenSlice[i]).Find(&user)
-		commentList[i].User = user
-	}
-	c.JSON(http.StatusOK, CommentListResponse{
-		Response:    Response{StatusCode: 0},
-		CommentList: commentList,
-	})
-}
 func PublishService(c *gin.Context) {
 	user := User{}
 	token := c.PostForm("token")
@@ -202,32 +114,15 @@ func PublishService(c *gin.Context) {
 		StatusMsg:  finalName + " uploaded successfully",
 	})
 }
+
 func PublishListService(c *gin.Context) {
 	//封面问题还未解决
-	//token := c.Query("token")
 	userId := c.Query("user_id")
-	//匹配视频与作者
+	//取出当前用户的所有发布列表
 	videoList := []Video{}
-	dao.DB.Find(&videoList)
-
-	//发布的视频有publish_token，和当前用户的token对应起来
-	//根据publish_token取出对应的user结构体，赋值给video的Author
-	videoTokenSlice := []string{}
-	for i := 0; i < len(videoList); i++ {
-		videoTokenSlice = append(videoTokenSlice, videoList[i].PublisherToken)
-	}
-	//点进头像后正常显示发布信息
-	for i := 0; i < len(videoTokenSlice); i++ {
-		user := User{}
-		dao.DB.Where("token = ?", videoTokenSlice[i]).Find(&user)
-		videoList[i].Author = user
-	}
-
-	//再根据点进去的用户显示相对应发布的作品
-	videoList = []Video{}
-	user := User{}
-	dao.DB.Where("id = ?", userId).Find(&user)
-	dao.DB.Where("publisher_token = ?", user.Token).Find(&videoList)
+	dao.DB.Table("videos").
+		Joins("join users on publisher_token = token and users.id = ? and videos.deleted_at is null", userId).
+		Scan(&videoList)
 
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{

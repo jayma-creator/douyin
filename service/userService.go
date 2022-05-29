@@ -179,18 +179,10 @@ func RelationActionService(c *gin.Context) {
 //关注列表
 func FollowListService(c *gin.Context) {
 	userId := c.Query("user_id")
-	//找出当前id的结构体
-	followFansRelations := []FollowFansRelation{}
-	dao.DB.Where("follow_id = ?", userId).Find(&followFansRelations)
-	//把当前用户关注的对方用户放到切片relations里
-	followIdSlice := []int64{}
-	for i := 0; i < len(followFansRelations); i++ {
-		followIdSlice = append(followIdSlice, followFansRelations[i].FollowerId)
-	}
-	//从User表里用对方的ID找出对应的结构体
-	//根据切片toUserIds里的对方用户ID直接查询，放在followList切片
 	followList := []User{}
-	dao.DB.Where(followIdSlice).Find(&followList) // gorm写法
+	dao.DB.Table("users").
+		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).
+		Scan(&followList)
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
@@ -202,20 +194,10 @@ func FollowListService(c *gin.Context) {
 //粉丝列表
 func FollowerListService(c *gin.Context) {
 	userId := c.Query("user_id")
-	//根据follower_id找出当前用户的结构体，和关注列表相反
-	followFansRelations := []FollowFansRelation{}
-	dao.DB.Where("follower_id = ?", userId).Find(&followFansRelations)
-	//把当前用户关注的followid放到切片relations里
-	fansIdSlice := []int64{}
-	for i := 0; i < len(followFansRelations); i++ {
-		//粉丝列表是找FollowId，和关注列表相反
-		//这里的toUserIds还是对方用户的Id，只不过现在对方用户Id在粉丝列表中
-		fansIdSlice = append(fansIdSlice, followFansRelations[i].FollowId)
-	}
-	//从User表里用对方的ID找出对应的结构体
-	//根据切片toUserIds里的对方用户ID直接查询，放在UserList切片
 	fansList := []User{}
-	dao.DB.Where(fansIdSlice).Find(&fansList) // gorm写法
+	dao.DB.Table("users").
+		Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
+		Scan(&fansList)
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
