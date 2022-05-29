@@ -24,12 +24,11 @@
 
 
 #注意事项：
+- 在config.ini修改自己的数据库
 - 测试发布视频时候注意自己调整public文件夹下的已存在视频
 - 删除操作统一为软删除，默认deleted_at为空，删除的话会自动改为当前时间，留在数据库
 - 测试用例放在了controller下的demo_data里，数据库自动创建都在main里，运行程序会自动创建表，并且自动加入测试用例
 - 数据库的配置修改在dao文件夹下的initDB里
-- dsn := "root:333@(localhost:3306)/demo?charset=utf8mb4&parseTime=True&loc=Local"
-- root为账号，333为密码，demo为数据库名，要自己创建好对应的数据库
 - 注意publish文件下的playurl的IP改为自己的IPV4地址
 - 发布完视频后要下拉刷新才会调用feed接口
 

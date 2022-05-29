@@ -1,17 +1,19 @@
 package dao
 
 import (
+	"fmt"
+	"github.com/RaymondCode/simple-demo/setting"
 	"github.com/jinzhu/gorm"
 )
 
 var DB *gorm.DB
 
-//初始化数据库
-func InitDB() (err error) {
-	dsn := "root:333@(localhost:3306)/demo?charset=utf8mb4&parseTime=True&loc=Local"
+func InitMySQL(cfg *setting.MySQLConfig) (err error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DB)
 	DB, err = gorm.Open("mysql", dsn)
 	if err != nil {
-		panic(err)
+		return
 	}
-	return nil
+	return DB.DB().Ping()
 }

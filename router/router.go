@@ -2,14 +2,17 @@ package router
 
 import (
 	"github.com/RaymondCode/simple-demo/controller"
+	"github.com/RaymondCode/simple-demo/setting"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 func InitRouter(r *gin.Engine) {
-	// public directory is used to serve static resources
+	//配置文件里如果Release为true则为生产环境模式
+	if setting.Conf.Release {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	r.Static("/static", "./public")
-
 	{
 		apiRouter := r.Group("/douyin") //提取公用的前缀，下面的就省略前缀
 
