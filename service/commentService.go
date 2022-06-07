@@ -46,7 +46,6 @@ func CommentActionService(c *gin.Context) {
 		comment.User = user
 		//video的comment_count+1
 		dao.DB.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", "1"))
-
 		c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
 			Comment: comment,
 		})

@@ -4,7 +4,6 @@ import (
 	"github.com/RaymondCode/simple-demo/controller"
 	"github.com/RaymondCode/simple-demo/setting"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func InitRouter(r *gin.Engine) {
@@ -23,9 +22,7 @@ func InitRouter(r *gin.Engine) {
 		apiRouter.POST("/user/login/", controller.Login)
 		apiRouter.POST("/publish/action/", controller.Publish)
 		apiRouter.GET("/publish/list/", controller.PublishList)
-		apiRouter.GET("/hello", func(c *gin.Context) {
-			c.JSON(http.StatusOK, 3)
-		})
+
 		// extra apis - I
 		apiRouter.POST("/favorite/action/", controller.FavoriteAction)
 		apiRouter.GET("/favorite/list/", controller.FavoriteList)

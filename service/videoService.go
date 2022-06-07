@@ -1,14 +1,11 @@
 package service
 
 import (
-	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"net/http"
-	"path/filepath"
 	"strconv"
-	"time"
 )
 
 type VideoListResponse struct {
@@ -62,56 +59,6 @@ func FavoriteListService(c *gin.Context) {
 			StatusCode: 0,
 		},
 		VideoList: videoList,
-	})
-}
-
-func PublishService(c *gin.Context) {
-	user := User{}
-	token := c.PostForm("token")
-	//在user结构体里查找token=客户端传来的token，count计数表示获取条数
-	count := 0
-	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
-	if count == 0 {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
-		return
-	}
-	data, err := c.FormFile("data")
-	if err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
-		return
-	}
-	//文件名
-	//filename := filepath.Base(data.Filename)
-	finalName := fmt.Sprintf("%d_%s", user.Id, data.Filename)
-	//保存在public文件夹下
-	saveFile := filepath.Join("./public/", finalName)
-	fmt.Println(saveFile)
-	if err := c.SaveUploadedFile(data, saveFile); err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
-		return
-	}
-	video := Video{
-		//Author:         user, //Author是User结构体类型，该字段不会在数据库里创建，所以这里可以省略
-		PlayUrl:        "http://192.168.220.1:8080/static/" + finalName,
-		CoverUrl:       "https://cdn.pixabay.com/photo/2016/03/27/18/10/bear-1283347_1280.jpg",
-		FavoriteCount:  0,
-		CommentCount:   0,
-		IsFavorite:     false,
-		PublisherToken: token,
-		CreatedAt:      time.Time{},
-		UpdatedAt:      time.Time{},
-		DeletedAt:      nil,
-	}
-	dao.DB.Create(&video)
-	c.JSON(http.StatusOK, Response{
-		StatusCode: 0,
-		StatusMsg:  finalName + " uploaded successfully",
 	})
 }
 

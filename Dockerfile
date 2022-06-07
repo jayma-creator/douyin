@@ -1,4 +1,4 @@
-FROM golang:1.18.1-alpine AS builder
+FROM golang:1.18.1-alpine
 
 # 为我们的镜像设置必要的环境变量
 ENV GO111MODULE=on \
@@ -6,6 +6,7 @@ ENV GO111MODULE=on \
     GOOS=linux \
     GOARCH=amd64
 RUN go env -w GOPROXY=https://goproxy.cn,direct
+RUN apk add git
 
 # 移动到工作目录：/build
 WORKDIR /build
@@ -21,13 +22,7 @@ COPY . .
 # 将我们的代码编译成二进制可执行文件 bubble
 RUN go build -o douyin .
 
-###################
-# 接下来创建一个小镜像
-###################
-FROM scratch
 
-# 从builder镜像中把/dist/app 拷贝到当前目录
-COPY --from=builder /build/douyin /
 
 # 需要运行的命令
-ENTRYPOINT ["/douyin"]
+ENTRYPOINT ["/build/douyin"]

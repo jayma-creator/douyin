@@ -16,13 +16,8 @@ type FeedResponse struct {
 //初始化视频流
 //拉取视频之前，未登录状态要取消点赞图标，登录状态要正确显示点赞图标
 //未登录状态点进头像显示未关注，登录后点进头像要正确的显示是否已关注
-func initVideo(videoList []Video) {
-
-}
 
 func FeedService(c *gin.Context) {
-	//initVideo(videoList )
-	//判断有没有用户登录
 	token := c.Query("token")
 	videoList := []Video{}
 	//把数据库里所有视频放在videoList内,且按照创建时间降序排列
@@ -56,13 +51,11 @@ func FeedService(c *gin.Context) {
 		})
 
 	} else {
-
 		c.JSON(http.StatusOK, FeedResponse{
 			Response:  Response{StatusCode: 0},
 			VideoList: videoList,
 			NextTime:  time.Now().Unix(),
 		})
-
 	}
 
 }

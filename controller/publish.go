@@ -12,5 +12,6 @@ func Publish(c *gin.Context) {
 
 //展示发布视频的列表
 func PublishList(c *gin.Context) {
+
 	service.PublishListService(c)
 }
