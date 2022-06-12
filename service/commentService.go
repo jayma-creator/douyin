@@ -19,6 +19,7 @@ type CommentActionResponse struct {
 	Comment Comment `json:"comment,omitempty"`
 }
 
+//评论和删除评论
 func CommentActionService(c *gin.Context) {
 	user := User{}
 	token := c.Query("token")
@@ -35,7 +36,6 @@ func CommentActionService(c *gin.Context) {
 		text := c.Query("comment_text")
 		//新增评论
 		comment := Comment{
-			//User:       user, //User是结构体类型，该字段不会在数据库里创建，所以这里可以省略
 			Content:    text,
 			CreateDate: time.Now().Format("2006-01-02 15:04:05")[5:10], //按格式输出日期，5:10表示月-日  2006-01-02 15:04:05是官方定义的规定格式
 			UserToken:  token,
@@ -58,6 +58,7 @@ func CommentActionService(c *gin.Context) {
 	}
 }
 
+//评论列表
 func CommentListService(c *gin.Context) {
 	videoId := c.Query("video_id")
 	//取出所有当前视频的评论

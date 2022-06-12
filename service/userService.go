@@ -30,7 +30,6 @@ func RegisterService(c *gin.Context) {
 	password := c.Query("password")
 	token := username + password
 	user := User{}
-	//查找数据库有没有对应的token
 	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
 	//如果查询到已存在对应的token，返回错误信息“已存在”
 	if count == 1 {
@@ -39,14 +38,13 @@ func RegisterService(c *gin.Context) {
 		})
 		//如果查询到不存在，则往数据库里添加对应的用户信息
 	} else if count == 0 {
-		//atomic.AddInt64(&userIdSequence, 1)
 		newUser := User{
 			//Id:       userIdSequence,
 			Name:     username,
 			Password: password,
 			Token:    token,
 		}
-		//往数据库添加一行数据
+		//插入数据
 		dao.DB.Create(&newUser)
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},
@@ -57,14 +55,10 @@ func RegisterService(c *gin.Context) {
 }
 
 func LoginService(c *gin.Context) {
-	//登录后先把所有用户的IsFollow改为false
-
-	//要添加user := User{} 才能重置count数
 	user := User{}
 	username := c.Query("username")
 	password := c.Query("password")
 	token := username + password
-	//查找数据库有没有对应的token
 	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
 	//如果没有对应的token，返回错误信息“用户不存在”
 	if count == 0 {
@@ -101,6 +95,7 @@ func LoginService(c *gin.Context) {
 	}
 }
 
+//用户信息
 func UserInfoService(c *gin.Context) {
 	user := User{}
 	token := c.Query("token")
@@ -133,19 +128,16 @@ func RelationActionService(c *gin.Context) {
 	}
 	toUserId, _ := strconv.Atoi(toUserIdStr)
 	if actionType == "1" {
-		//1表示关注
 		//如果当前用户点击关注自己，返回错误提示
 		if user.Id == int64(toUserId) {
-			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "不能关注自己"}) //实际看不到文字，客户端问题
+			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "不能关注自己"})
 			return
 		}
-		//把对方用户添加到关注列表里
 		//把当前用户添加到对方用户的粉丝列表
 		r := FollowFansRelation{
 			FollowId:   user.Id,
 			FollowerId: int64(toUserId),
 		}
-		//gorm 增加一行
 		dao.DB.Create(&r)
 		//修改对方用户的is_follow字段为true，表示已关注
 		dao.DB.Model(&User{}).Where("id = ?", toUserId).Update("is_follow", true)
@@ -154,8 +146,6 @@ func RelationActionService(c *gin.Context) {
 		dao.DB.Model(&User{}).Where("id = ?", toUserId).Update("follower_count", gorm.Expr("follower_count + ?", "1"))
 
 	} else {
-		//2表示取消关注
-		//把对方用户从关注列表里删除
 		//把当前用户从对方用户的粉丝列表里删除
 		dao.DB.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Delete(FollowFansRelation{})
 		//修改对方用户的is_follow字段为false，表示未关注
@@ -171,6 +161,7 @@ func RelationActionService(c *gin.Context) {
 func FollowListService(c *gin.Context) {
 	userId := c.Query("user_id")
 	followList := []User{}
+	//查询出当前用户关注的列表
 	dao.DB.Table("users").
 		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).
 		Scan(&followList)
@@ -186,6 +177,7 @@ func FollowListService(c *gin.Context) {
 func FollowerListService(c *gin.Context) {
 	userId := c.Query("user_id")
 	fansList := []User{}
+	//查询出当前用户的粉丝列表
 	dao.DB.Table("users").
 		Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
 		Scan(&fansList)

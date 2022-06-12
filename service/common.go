@@ -12,7 +12,7 @@ type Response struct {
 //添加了PublisherToken字段，来判别视频属于谁发布的
 type Video struct {
 	Id             int64      `json:"id,omitempty"`
-	Author         User       `json:"author"` //注意这里Author属性是不会导入数据库的
+	Author         User       `json:"author"`
 	PlayUrl        string     `json:"play_url,omitempty"`
 	CoverUrl       string     `json:"cover_url,omitempty"`
 	FavoriteCount  int64      `json:"favorite_count,omitempty" gorm:"default:'0'"`
@@ -30,7 +30,7 @@ type Comment struct {
 	Content    string     `json:"content,omitempty"`
 	CreateDate string     `json:"create_date,omitempty"`
 	UserToken  string     `json:"user_token" gorm:"comment:'发表评论用户的token'"`
-	VideoId    int64      `json:"video_id" gorm:"'发表评论的视频id'"`
+	VideoId    int64      `json:"video_id" gorm:"comment:'发表评论的视频id'"`
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`
 	DeletedAt  *time.Time `json:"deleted_at"`
@@ -43,7 +43,7 @@ type User struct {
 	FollowerCount int64      `json:"follower_count,omitempty" gorm:"default:'0'"`
 	IsFollow      bool       `json:"is_follow,omitempty" gorm:"default:'0'"`
 	Password      string     `json:"password,omitempty"`
-	Token         string     `json:"token,omitempty" gorm:"unique"`
+	Token         string     `json:"token,omitempty" gorm:"unique_index"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 	DeletedAt     *time.Time `json:"deleted_at"`

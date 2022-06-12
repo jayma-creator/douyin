@@ -1,11 +1,17 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
+	ffmpeg "github.com/u2takey/ffmpeg-go"
+	"io"
+	"log"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,7 +20,6 @@ import (
 func PublishService(c *gin.Context) {
 	user := User{}
 	token := c.PostForm("token")
-	//在user结构体里查找token=客户端传来的token
 	dao.DB.Where("token = ?", token).Find(&user)
 	count := 0
 	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
@@ -22,7 +27,7 @@ func PublishService(c *gin.Context) {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
 	}
-	//获取视频文件数据，前端传来data
+	//获取视频文件数据
 	data, err := c.FormFile("data")
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
@@ -43,11 +48,12 @@ func PublishService(c *gin.Context) {
 		})
 		return
 	}
+	snapShotName := finalName + "-cover.jpeg"
 	ip := getIp()
+	getSnapShot(snapShotName, saveFile)
 	video := Video{
-		//Author:         user, //Author是User结构体类型，该字段不会在数据库里创建，所以这里可以省略
 		PlayUrl:        "http://" + ip + ":8080/static/" + finalName,
-		CoverUrl:       "https://cdn.pixabay.com/photo/2016/03/27/18/10/bear-1283347_1280.jpg",
+		CoverUrl:       "http://" + ip + ":8080/static/" + snapShotName,
 		FavoriteCount:  0,
 		CommentCount:   0,
 		IsFavorite:     false,
@@ -72,4 +78,32 @@ func getIp() string {
 	defer conn.Close()
 	ip := strings.Split(conn.LocalAddr().String(), ":")[0]
 	return ip
+}
+
+//截图做封面
+func ExampleReadFrameAsJpeg(inFileName string, frameNum int) io.Reader {
+	buf := bytes.NewBuffer(nil)
+	err := ffmpeg.Input(inFileName).
+		Filter("select", ffmpeg.Args{fmt.Sprintf("gte(n,%d)", frameNum)}).
+		Output("pipe:", ffmpeg.KwArgs{"vframes": 1, "format": "image2", "vcodec": "mjpeg"}).
+		WithOutput(buf, os.Stdout).
+		Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return buf
+}
+
+//保存截图
+func getSnapShot(snapShotName string, videoFilePath string) error {
+	reader := ExampleReadFrameAsJpeg(videoFilePath, 1)
+	img, err := imaging.Decode(reader)
+	if err != nil {
+		return err
+	}
+	err = imaging.Save(img, "./public/"+snapShotName)
+	if err != nil {
+		return err
+	}
+	return nil
 }

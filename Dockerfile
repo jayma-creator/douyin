@@ -7,6 +7,9 @@ ENV GO111MODULE=on \
     GOARCH=amd64
 RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN apk add git
+#添加ffmpeg
+RUN apk update
+RUN apk add yasm && apk add ffmpeg
 
 # 移动到工作目录：/build
 WORKDIR /build

@@ -49,7 +49,7 @@ func FavoriteActionService(c *gin.Context) {
 
 func FavoriteListService(c *gin.Context) {
 	userId := c.Query("user_id")
-	//select当前id点赞过的视频
+	//查询出当前登录的用户点赞过的视频列表
 	videoList := []Video{}
 	dao.DB.Table("videos").
 		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and videos.deleted_at is null", userId).
@@ -63,9 +63,8 @@ func FavoriteListService(c *gin.Context) {
 }
 
 func PublishListService(c *gin.Context) {
-	//封面问题还未解决
 	userId := c.Query("user_id")
-	//select当前id所发布的视频
+	//查询出当前用户发布过的视频列表
 	videoList := []Video{}
 	dao.DB.Table("videos").
 		Joins("join users on publisher_token = token and users.id = ? and videos.deleted_at is null", userId).

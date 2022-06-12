@@ -13,10 +13,6 @@ type FeedResponse struct {
 	NextTime  int64   `json:"next_time,omitempty"`
 }
 
-//初始化视频流
-//拉取视频之前，未登录状态要取消点赞图标，登录状态要正确显示点赞图标
-//未登录状态点进头像显示未关注，登录后点进头像要正确的显示是否已关注
-
 func FeedService(c *gin.Context) {
 	token := c.Query("token")
 	videoList := []Video{}
@@ -30,7 +26,7 @@ func FeedService(c *gin.Context) {
 		videoList[i].Author = user
 	}
 
-	//如果无用户登录，则把点赞图标取消
+	//无用户登录
 	if token == "" {
 		//每次获取先把默认点赞标识改为false
 		for i := 0; i < len(videoList); i++ {
@@ -44,18 +40,10 @@ func FeedService(c *gin.Context) {
 			users[i].IsFollow = false
 			dao.DB.Model(&User{}).Update("is_follow", false)
 		}
-		c.JSON(http.StatusOK, FeedResponse{
-			Response:  Response{StatusCode: 0},
-			VideoList: videoList,
-			NextTime:  time.Now().Unix(),
-		})
-
-	} else {
-		c.JSON(http.StatusOK, FeedResponse{
-			Response:  Response{StatusCode: 0},
-			VideoList: videoList,
-			NextTime:  time.Now().Unix(),
-		})
 	}
-
+	c.JSON(http.StatusOK, FeedResponse{
+		Response:  Response{StatusCode: 0},
+		VideoList: videoList,
+		NextTime:  time.Now().Unix(),
+	})
 }
