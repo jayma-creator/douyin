@@ -37,7 +37,7 @@ func CommentActionService(c *gin.Context) {
 		//新增评论
 		comment := Comment{
 			Content:    text,
-			CreateDate: time.Now().Format("2006-01-02 15:04:05")[5:10], //按格式输出日期，5:10表示月-日  2006-01-02 15:04:05是官方定义的规定格式
+			CreateDate: time.Now().Format("2006-01-02 15:04:05")[5:10], //按格式输出日期，5:10表示月-日
 			UserToken:  token,
 			VideoId:    int64(videoId),
 		}
@@ -49,12 +49,12 @@ func CommentActionService(c *gin.Context) {
 		c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
 			Comment: comment,
 		})
-
 	} else if actionType == "2" {
 		commentId := c.Query("comment_id")
 		dao.DB.Where("id = ?", commentId).Delete(&Comment{})
 		//video的comment_count-1
 		dao.DB.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count - ?", "1"))
+		c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0}})
 	}
 }
 
