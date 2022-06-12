@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -12,7 +11,6 @@ func LoginService(c *gin.Context) {
 	username := c.Query("username")
 	password := GetMD5(c.Query("password"))
 	token := username + password
-	fmt.Println(token)
 	dao.DB.Where("name = ?", username).Find(&user).Count(&count)
 	//如果没有对应的token，返回错误信息“用户不存在”
 	if count == 0 {
