@@ -18,7 +18,7 @@ func LoginService(c *gin.Context) {
 			Response: Response{StatusCode: 1, StatusMsg: "用户不存在"},
 		})
 		return
-		//如果有对应的token，返回用户信息
+		//如果token不匹配，提示密码错误
 	} else if count == 1 && token != user.Token {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "密码错误"},

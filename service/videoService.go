@@ -13,6 +13,7 @@ type VideoListResponse struct {
 	VideoList []Video `json:"video_list"`
 }
 
+//点赞与取消
 func FavoriteActionService(c *gin.Context) {
 	user := User{}
 	token := c.Query("token")
@@ -47,6 +48,7 @@ func FavoriteActionService(c *gin.Context) {
 	}
 }
 
+//点赞列表
 func FavoriteListService(c *gin.Context) {
 	userId := c.Query("user_id")
 	//查询出当前登录的用户点赞过的视频列表
@@ -62,6 +64,7 @@ func FavoriteListService(c *gin.Context) {
 	})
 }
 
+//发布列表
 func PublishListService(c *gin.Context) {
 	userId := c.Query("user_id")
 	//查询出当前用户发布过的视频列表

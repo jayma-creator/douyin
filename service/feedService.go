@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -47,5 +46,4 @@ func FeedService(c *gin.Context) {
 		VideoList: videoList,
 		NextTime:  time.Now().Unix(),
 	})
-	fmt.Println(time.Now().Unix())
 }

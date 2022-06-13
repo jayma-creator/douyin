@@ -69,6 +69,7 @@ func PublishService(c *gin.Context) {
 	})
 }
 
+//获取当前主机IP
 func getIp() string {
 	conn, err := net.Dial("udp", "google.com:80")
 	if err != nil {
