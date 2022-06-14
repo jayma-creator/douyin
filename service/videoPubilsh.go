@@ -20,6 +20,7 @@ import (
 func PublishService(c *gin.Context) {
 	user := User{}
 	token := c.PostForm("token")
+	title := c.PostForm("title")
 	dao.DB.Where("token = ?", token).Find(&user)
 	count := 0
 	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
@@ -57,6 +58,7 @@ func PublishService(c *gin.Context) {
 		FavoriteCount:  0,
 		CommentCount:   0,
 		IsFavorite:     false,
+		Title:          title,
 		PublisherToken: token,
 		CreatedAt:      time.Time{},
 		UpdatedAt:      time.Time{},

@@ -18,6 +18,7 @@ type Video struct {
 	FavoriteCount  int64      `json:"favorite_count,omitempty" gorm:"default:'0'"`
 	CommentCount   int64      `json:"comment_count,omitempty" gorm:"default:'0'"`
 	IsFavorite     bool       `json:"is_favorite,omitempty"`
+	Title          string     `json:"title"`
 	PublisherToken string     `json:"publisher_token"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
