@@ -12,11 +12,11 @@ type Response struct {
 //添加了PublisherToken字段，来判别视频属于谁发布的
 type Video struct {
 	Id             int64      `json:"id,omitempty"`
-	Author         User       `json:"author"`
+	Author         User       `json:"author" gorm:"foreignKey:AuthorId;-"`
 	PlayUrl        string     `json:"play_url,omitempty"`
 	CoverUrl       string     `json:"cover_url,omitempty"`
-	FavoriteCount  int64      `json:"favorite_count,omitempty" gorm:"default:'0'"`
-	CommentCount   int64      `json:"comment_count,omitempty" gorm:"default:'0'"`
+	FavoriteCount  int64      `json:"favorite_count,omitempty"`
+	CommentCount   int64      `json:"comment_count,omitempty" `
 	IsFavorite     bool       `json:"is_favorite,omitempty"`
 	Title          string     `json:"title"`
 	PublisherToken string     `json:"publisher_token"`
@@ -27,11 +27,12 @@ type Video struct {
 
 type Comment struct {
 	Id         int64      `json:"id,omitempty"`
-	User       User       `json:"user"`
+	UserId     int64      `json:"user_id,omitempty"`
+	User       User       `json:"user" gorm:"foreignKey:UserId;"`
+	VideoId    int64      `json:"video_id" `
+	Video      Video      `json:"video" gorm:"foreignKey:VideoId"`
 	Content    string     `json:"content,omitempty"`
 	CreateDate string     `json:"create_date,omitempty"`
-	UserToken  string     `json:"user_token" gorm:"comment:'发表评论用户的token'"`
-	VideoId    int64      `json:"video_id" gorm:"comment:'发表评论的视频id'"`
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`
 	DeletedAt  *time.Time `json:"deleted_at"`
@@ -40,9 +41,9 @@ type Comment struct {
 type User struct {
 	Id            int64      `json:"id,omitempty"`
 	Name          string     `json:"name,omitempty"`
-	FollowCount   int64      `json:"follow_count,omitempty" gorm:"default:'0'"`
-	FollowerCount int64      `json:"follower_count,omitempty" gorm:"default:'0'"`
-	IsFollow      bool       `json:"is_follow,omitempty" gorm:"default:'0'"`
+	FollowCount   int64      `json:"follow_count,omitempty" `
+	FollowerCount int64      `json:"follower_count,omitempty" `
+	IsFollow      bool       `json:"is_follow,omitempty" `
 	Password      string     `json:"password,omitempty"`
 	Token         string     `json:"token,omitempty" gorm:"unique_index"`
 	CreatedAt     time.Time  `json:"created_at"`
@@ -65,6 +66,7 @@ type UserFavoriteRelation struct {
 	Id        int64      `json:"id,omitempty"`
 	UserId    int64      `json:"user_id"`
 	VideoId   int64      `json:"video_id"`
+	Follow    User       `json:"follow,omitempty" gorm:"foreignKey:FollowId;-"`
 	CreatedAt time.Time  `json:"created_at" gorm:"comment:'like时间'"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at" gorm:"comment:'unlike时间'"`

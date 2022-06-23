@@ -22,7 +22,6 @@ func PublishService(c *gin.Context) {
 	token := c.PostForm("token")
 	title := c.PostForm("title")
 	dao.DB.Where("token = ?", token).Find(&user)
-	count := 0
 	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
 	if count == 0 {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})

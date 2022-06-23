@@ -20,7 +20,6 @@ func FavoriteActionService(c *gin.Context) {
 	videoIdStr := c.Query("video_id")
 	actionType := c.Query("action_type")
 	videoId, _ := strconv.Atoi(videoIdStr)
-	count := 0
 	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
 	if count == 0 {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})

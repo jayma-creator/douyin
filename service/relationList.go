@@ -21,8 +21,6 @@ type UserResponse struct {
 	User User `json:"user"`
 }
 
-var count = 0
-
 //关注列表
 func FollowListService(c *gin.Context) {
 	userId := c.Query("user_id")

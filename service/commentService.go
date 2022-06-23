@@ -19,6 +19,8 @@ type CommentActionResponse struct {
 	Comment Comment `json:"comment,omitempty"`
 }
 
+var count int64
+
 //评论和删除评论
 func CommentActionService(c *gin.Context) {
 	user := User{}
@@ -26,8 +28,8 @@ func CommentActionService(c *gin.Context) {
 	actionType := c.Query("action_type")
 	videoIdStr := c.Query("video_id")
 	videoId, _ := strconv.Atoi(videoIdStr)
-	count := 0
 	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
+	userId := user.Id
 	if count == 0 {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
@@ -37,13 +39,12 @@ func CommentActionService(c *gin.Context) {
 		//新增评论
 		comment := Comment{
 			Content:    text,
+			UserId:     userId,
+			User:       user,
 			CreateDate: time.Now().Format("2006-01-02 15:04:05")[5:10], //按格式输出日期，5:10表示月-日
-			UserToken:  token,
 			VideoId:    int64(videoId),
 		}
 		dao.DB.Create(&comment)
-		//为了能评论后即时显示用户名，这里手动赋值comment的User
-		comment.User = user
 		//video的comment_count+1
 		dao.DB.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", "1"))
 		c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0},
@@ -63,13 +64,14 @@ func CommentListService(c *gin.Context) {
 	videoId := c.Query("video_id")
 	//取出所有当前视频的评论
 	commentList := []Comment{}
-	dao.DB.Where("video_id = ?", videoId).Find(&commentList)
+	dao.DB.Where("video_id = ?", videoId).Preload("User").Find(&commentList).Debug()
 	//匹配评论作者
-	for i := 0; i < len(commentList); i++ {
-		user := User{}
-		dao.DB.Where("token = ?", commentList[i].UserToken).Find(&user)
-		commentList[i].User = user
-	}
+	//for i := 0; i < len(commentList); i++ {
+	//	user := User{}
+	//	dao.DB.Where("token = ?", commentList[i].UserToken).Find(&user)
+	//	commentList[i].User = user
+	//}
+
 	c.JSON(http.StatusOK, CommentListResponse{
 		Response:    Response{StatusCode: 0},
 		CommentList: commentList,
