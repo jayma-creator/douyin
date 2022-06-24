@@ -6,23 +6,25 @@ import (
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	ffmpeg "github.com/u2takey/ffmpeg-go"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
-func PublishService(c *gin.Context) {
+func PublishService(c *gin.Context) (err error) {
 	user := User{}
 	token := c.PostForm("token")
 	title := c.PostForm("title")
-	dao.DB.Where("token = ?", token).Find(&user)
-	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
+	err = dao.DB.Where("token = ?", token).Find(&user).Count(&count).Error
+	if err != nil {
+		logrus.Error("查询token失败", err)
+		return
+	}
 	if count == 0 {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
@@ -41,7 +43,7 @@ func PublishService(c *gin.Context) {
 	//设定路径public文件夹下
 	saveFile := filepath.Join("./public/", finalName)
 	//保存文件
-	if err := c.SaveUploadedFile(data, saveFile); err != nil {
+	if err = c.SaveUploadedFile(data, saveFile); err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
 			StatusMsg:  err.Error(),
@@ -50,31 +52,37 @@ func PublishService(c *gin.Context) {
 	}
 	snapShotName := finalName + "-cover.jpeg"
 	ip := getIp()
+	if err != nil {
+		logrus.Error("获取ip失败", err)
+		return
+	}
 	getSnapShot(snapShotName, saveFile)
 	video := Video{
-		PlayUrl:        "http://" + ip + ":8080/static/" + finalName,
-		CoverUrl:       "http://" + ip + ":8080/static/" + snapShotName,
-		FavoriteCount:  0,
-		CommentCount:   0,
-		IsFavorite:     false,
-		Title:          title,
-		PublisherToken: token,
-		CreatedAt:      time.Time{},
-		UpdatedAt:      time.Time{},
-		DeletedAt:      nil,
+		Author:        user,
+		PlayUrl:       "http://" + ip + ":8080/static/" + finalName,
+		CoverUrl:      "http://" + ip + ":8080/static/" + snapShotName,
+		FavoriteCount: 0,
+		CommentCount:  0,
+		IsFavorite:    false,
+		Title:         title,
 	}
-	dao.DB.Create(&video)
+	err = dao.DB.Create(&video).Error
+	if err != nil {
+		logrus.Error("插入视频失败", err)
+		return
+	}
 	c.JSON(http.StatusOK, Response{
 		StatusCode: 0,
 		StatusMsg:  finalName + " uploaded successfully",
 	})
+	return
 }
 
 //获取当前主机IP
 func getIp() string {
 	conn, err := net.Dial("udp", "google.com:80")
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.Error("获取ip失败", err)
 		return ""
 	}
 	defer conn.Close()
@@ -91,21 +99,24 @@ func ExampleReadFrameAsJpeg(inFileName string, frameNum int) io.Reader {
 		WithOutput(buf, os.Stdout).
 		Run()
 	if err != nil {
-		log.Fatal(err)
+		logrus.Error("获取封面失败", err)
+		return nil
 	}
 	return buf
 }
 
 //保存截图
-func getSnapShot(snapShotName string, videoFilePath string) error {
+func getSnapShot(snapShotName string, videoFilePath string) {
 	reader := ExampleReadFrameAsJpeg(videoFilePath, 1)
 	img, err := imaging.Decode(reader)
 	if err != nil {
-		return err
+		logrus.Error("保存截图失败", err)
+		return
 	}
 	err = imaging.Save(img, "./public/"+snapShotName)
 	if err != nil {
-		return err
+		logrus.Error("保存截图失败", err)
+		return
 	}
-	return nil
+	return
 }

@@ -3,15 +3,20 @@ package service
 import (
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
-func LoginService(c *gin.Context) {
+func LoginService(c *gin.Context) (err error) {
 	user := User{}
 	username := c.Query("username")
 	password := GetMD5(c.Query("password"))
 	token := username + password
-	dao.DB.Where("name = ?", username).Find(&user).Count(&count)
+	err = dao.DB.Where("name = ?", username).Find(&user).Count(&count).Error
+	if err != nil {
+		logrus.Error("查询name失败", err)
+		return
+	}
 	//如果没有对应的token，返回错误信息“用户不存在”
 	if count == 0 {
 		c.JSON(http.StatusOK, UserLoginResponse{
@@ -50,4 +55,5 @@ func LoginService(c *gin.Context) {
 		videos[i].IsFavorite = true
 		dao.DB.Model(&Video{}).Where("id = ?", videos[i].Id).Update("is_favorite", true)
 	}
+	return
 }

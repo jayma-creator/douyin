@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -22,33 +23,47 @@ type UserResponse struct {
 }
 
 //关注列表
-func FollowListService(c *gin.Context) {
+func FollowListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
-	followList := []User{}
+	userList := []User{}
+	followList := []FollowFansRelation{}
 	//查询出当前用户关注的列表
-	dao.DB.Table("users").
-		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).
-		Scan(&followList)
+	err = dao.DB.Where("follow_id = ?", userId).Preload("Follower").Find(&followList).Error
+	if err != nil {
+		logrus.Error("获取关注列表失败", err)
+		return
+	}
+	for i := 0; i < len(followList); i++ {
+		userList = append(userList, followList[i].Follower)
+	}
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: followList,
+		UserList: userList,
 	})
+	return
 }
 
 //粉丝列表
-func FollowerListService(c *gin.Context) {
+func FollowerListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	fansList := []User{}
+	followList := []FollowFansRelation{}
 	//查询出当前用户的粉丝列表
-	dao.DB.Table("users").
-		Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
-		Scan(&fansList)
+	err = dao.DB.Where("follower_id = ?", userId).Preload("Follow").Find(&followList).Error
+	if err != nil {
+		logrus.Error("获取粉丝列表失败", err)
+		return
+	}
+	for i := 0; i < len(followList); i++ {
+		fansList = append(fansList, followList[i].Follow)
+	}
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
 		UserList: fansList,
 	})
+	return
 }

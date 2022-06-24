@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
-func RegisterService(c *gin.Context) {
+func RegisterService(c *gin.Context) (err error) {
 	username := c.Query("username")
 	password := GetMD5(c.Query("password"))
 	token := username + password
 
 	user := User{}
-	dao.DB.Where("token = ?", token).Find(&user).Count(&count)
-	//如果查询到已存在对应的token，返回错误信息“已存在”
+	err = dao.DB.Where("token = ?", token).Find(&user).Count(&count).Error
+	if err != nil {
+		logrus.Error("查询token失败", err)
+		return
+	} //如果查询到已存在对应的token，返回错误信息“已存在”
 	if count == 1 {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
@@ -29,13 +33,18 @@ func RegisterService(c *gin.Context) {
 			Token:    token,
 		}
 		//插入数据
-		dao.DB.Create(&newUser)
+		err = dao.DB.Create(&newUser).Error
+		if err != nil {
+			logrus.Error("新增用户失败", err)
+			return
+		}
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0},
 			UserId:   user.Id,
 			Token:    token,
 		})
 	}
+	return
 }
 
 func GetMD5(str string) string {

@@ -4,20 +4,32 @@ import (
 	"github.com/RaymondCode/simple-demo/service"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/sirupsen/logrus"
 )
 
 //关注操作
 func RelationAction(c *gin.Context) {
-	service.RelationActionService(c)
-
+	err := service.RelationActionService(c)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 }
 
 //关注列表
 func FollowList(c *gin.Context) {
-	service.FollowListService(c)
+	err := service.FollowListService(c)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 }
 
 //粉丝列表
 func FollowerList(c *gin.Context) {
-	service.FollowerListService(c)
+	err := service.FollowerListService(c)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 }

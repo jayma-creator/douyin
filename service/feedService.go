@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 )
@@ -13,19 +14,15 @@ type FeedResponse struct {
 	NextTime  int64   `json:"next_time,omitempty"`
 }
 
-func FeedService(c *gin.Context) {
+func FeedService(c *gin.Context) (err error) {
 	token := c.Query("token")
 	videoList := []Video{}
 	//把数据库里所有视频放在videoList内,且按照创建时间降序排列
-	dao.DB.Order("created_at desc").Find(&videoList)
-
-	//匹配视频与作者
-	for i := 0; i < len(videoList); i++ {
-		user := User{}
-		dao.DB.Where("token = ?", videoList[i].PublisherToken).Find(&user)
-		videoList[i].Author = user
+	err = dao.DB.Order("created_at desc").Preload("Author").Find(&videoList).Error
+	if err != nil {
+		logrus.Error("获取视频列表失败", err)
+		return
 	}
-
 	//无用户登录
 	if token == "" {
 		//每次获取先把默认点赞标识改为false
@@ -46,4 +43,5 @@ func FeedService(c *gin.Context) {
 		VideoList: videoList,
 		NextTime:  time.Now().Unix(),
 	})
+	return
 }
