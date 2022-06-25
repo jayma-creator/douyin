@@ -33,54 +33,16 @@ func CommentActionService(c *gin.Context) (err error) {
 		actionType := c.Query("action_type")
 		videoIdStr := c.Query("video_id")
 		videoId, _ := strconv.Atoi(videoIdStr)
-		userId := user.Id
 		if actionType == createComment {
-			tx := dao.DB.Begin()
-			text := c.Query("comment_text")
-			//新增评论
-			comment := Comment{
-				Content:    text,
-				UserId:     userId,
-				User:       user,
-				CreateDate: time.Now().Format("2006-01-02 15:04:05")[5:10], //按格式输出日期，5:10表示月-日
-				VideoId:    int64(videoId),
-			}
-			err = tx.Create(&comment).Error
+			err = comment(c, user, videoId)
 			if err != nil {
-				logrus.Error("插入评论信息失败", err)
-				tx.Rollback()
 				return
 			}
-			//video的comment_count+1
-			err = tx.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", "1")).Error
-			if err != nil {
-				logrus.Error("修改评论数失败", err)
-				tx.Rollback()
-				return
-			}
-			tx.Commit()
-			c.JSON(http.StatusOK, CommentActionResponse{
-				Response: Response{StatusCode: 0, StatusMsg: "评论成功"},
-				Comment:  comment,
-			})
 		} else if actionType == delComment {
-			tx := dao.DB.Begin()
-			commentId := c.Query("comment_id")
-			err = tx.Where("id = ?", commentId).Delete(&Comment{}).Error
+			err = deleteComment(c, videoId)
 			if err != nil {
-				logrus.Error("删除评论信息失败", err)
-				tx.Rollback()
 				return
 			}
-			//video的comment_count-1
-			err = tx.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count - ?", "1")).Error
-			if err != nil {
-				logrus.Error("修改评论信息失败", err)
-				tx.Rollback()
-				return
-			}
-			tx.Commit()
-			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0, StatusMsg: "删除评论成功"}})
 		} else {
 			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 1, StatusMsg: "错误操作"}})
 			return
@@ -106,5 +68,61 @@ func CommentListService(c *gin.Context) (err error) {
 		Response:    Response{StatusCode: 0},
 		CommentList: commentList,
 	})
+	return
+}
+
+//新增评论
+func comment(c *gin.Context, user User, videoId int) (err error) {
+	userId := user.Id
+	tx := dao.DB.Begin()
+	text := c.Query("comment_text")
+	//新增评论
+	comment := Comment{
+		Content:    text,
+		UserId:     userId,
+		User:       user,
+		CreateDate: time.Now().Format("2006-01-02 15:04:05")[5:10], //按格式输出日期，5:10表示月-日
+		VideoId:    int64(videoId),
+	}
+	err = tx.Create(&comment).Error
+	if err != nil {
+		logrus.Error("插入评论信息失败", err)
+		tx.Rollback()
+		return
+	}
+	//video的comment_count+1
+	err = tx.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", "1")).Error
+	if err != nil {
+		logrus.Error("修改评论数失败", err)
+		tx.Rollback()
+		return
+	}
+	tx.Commit()
+	c.JSON(http.StatusOK, CommentActionResponse{
+		Response: Response{StatusCode: 0, StatusMsg: "评论成功"},
+		Comment:  comment,
+	})
+	return
+}
+
+//删除评论
+func deleteComment(c *gin.Context, videoId int) (err error) {
+	tx := dao.DB.Begin()
+	commentId := c.Query("comment_id")
+	err = tx.Where("id = ?", commentId).Delete(&Comment{}).Error
+	if err != nil {
+		logrus.Error("删除评论信息失败", err)
+		tx.Rollback()
+		return
+	}
+	//video的comment_count-1
+	err = tx.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count - ?", "1")).Error
+	if err != nil {
+		logrus.Error("修改评论信息失败", err)
+		tx.Rollback()
+		return
+	}
+	tx.Commit()
+	c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0, StatusMsg: "删除评论成功"}})
 	return
 }

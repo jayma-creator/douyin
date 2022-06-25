@@ -39,46 +39,10 @@ func FeedService(c *gin.Context) (err error) {
 		token = c.Query("token")
 		user, exist, err := CheckToken(token)
 		if exist {
-			tx := dao.DB.Begin()
-			//匹配当前登录的账号是否已关注别的账号
-			users := []User{}
-			err = tx.Table("users").
-				Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", user.Id).
-				Find(&users).Error
+			checkUserSetting(user)
 			if err != nil {
-				logrus.Error("修改失败", err)
-				tx.Rollback()
 				return err
 			}
-			for i := 0; i < len(users); i++ {
-				err = tx.Model(&User{}).Where("id = ?", users[i].Id).Update("is_follow", true).Error
-				if err != nil {
-					logrus.Error("修改失败", err)
-					tx.Rollback()
-					return err
-				}
-			}
-
-			//匹配当前登录的账号是否已点赞视频
-			videos := []Video{}
-			err = tx.Table("videos").
-				Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", user.Id).
-				Find(&videos).Error
-			if err != nil {
-				logrus.Error("修改失败", err)
-				tx.Rollback()
-				return err
-			}
-			for i := 0; i < len(videos); i++ {
-				//videos[i].IsFavorite = true
-				err = tx.Model(&Video{}).Where("id = ?", videos[i].Id).Update("is_favorite", true).Error
-				if err != nil {
-					logrus.Error("修改失败", err)
-					tx.Rollback()
-					return err
-				}
-			}
-			tx.Commit()
 		}
 	}
 	err = dao.DB.Order("created_at desc").Preload("Author").Find(&videoList).Error
@@ -92,4 +56,48 @@ func FeedService(c *gin.Context) (err error) {
 		NextTime:  time.Now().Unix(),
 	})
 	return
+}
+
+func checkUserSetting(user User) (err error) {
+	tx := dao.DB.Begin()
+	//匹配当前登录的账号是否已关注别的账号
+	users := []User{}
+	err = tx.Table("users").
+		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", user.Id).
+		Find(&users).Error
+	if err != nil {
+		logrus.Error("修改失败", err)
+		tx.Rollback()
+		return err
+	}
+	for i := 0; i < len(users); i++ {
+		err = tx.Model(&User{}).Where("id = ?", users[i].Id).Update("is_follow", true).Error
+		if err != nil {
+			logrus.Error("修改失败", err)
+			tx.Rollback()
+			return err
+		}
+	}
+
+	//匹配当前登录的账号是否已点赞视频
+	videos := []Video{}
+	err = tx.Table("videos").
+		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", user.Id).
+		Find(&videos).Error
+	if err != nil {
+		logrus.Error("修改失败", err)
+		tx.Rollback()
+		return err
+	}
+	for i := 0; i < len(videos); i++ {
+		//videos[i].IsFavorite = true
+		err = tx.Model(&Video{}).Where("id = ?", videos[i].Id).Update("is_favorite", true).Error
+		if err != nil {
+			logrus.Error("修改失败", err)
+			tx.Rollback()
+			return err
+		}
+	}
+	tx.Commit()
+	return err
 }

@@ -29,46 +29,15 @@ func FavoriteActionService(c *gin.Context) (err error) {
 	user, exist, err := CheckToken(token)
 	if exist {
 		if actionType == like {
-			tx := dao.DB.Begin()
-			ufr := UserFavoriteRelation{
-				UserId:  user.Id,
-				VideoId: int64(videoId),
-			}
-			err = tx.Create(&ufr).Error
+			err = likeAct(c, user, videoId)
 			if err != nil {
-				logrus.Error("新增视频信息失败", err)
-				tx.Rollback()
 				return
 			}
-			//把video结构体里的IsFavorite改为true
-			//video的favorite_count+1
-			err = tx.Model(&Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": true, "favorite_count": gorm.Expr("favorite_count + ?", "1")}).Error
-			if err != nil {
-				logrus.Error("修改视频信息失败", err)
-				tx.Rollback()
-				return
-			}
-			tx.Commit()
-			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "like success"})
-
 		} else if actionType == unLike {
-			tx := dao.DB.Begin()
-			err = tx.Where("user_id = ? and video_id = ?", user.Id, videoId).Delete(&UserFavoriteRelation{}).Error
+			err = unlikeAct(c, user, videoId)
 			if err != nil {
-				logrus.Error("删除视频信息失败", err)
-				tx.Rollback()
 				return
 			}
-			//把video结构体里的IsFavorite改为false
-			//video的favorite_count-1
-			err = tx.Model(&Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": false, "favorite_count": gorm.Expr("favorite_count - ?", "1")}).Error
-			if err != nil {
-				logrus.Error("修改视频信息失败", err)
-				tx.Rollback()
-				return
-			}
-			tx.Commit()
-			c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "unlike success"})
 		} else {
 			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 1, StatusMsg: "错误操作"}})
 			return
@@ -117,5 +86,53 @@ func PublishListService(c *gin.Context) (err error) {
 		},
 		VideoList: videoList,
 	})
+	return
+}
+
+//点赞
+func likeAct(c *gin.Context, user User, videoId int) (err error) {
+	tx := dao.DB.Begin()
+	ufr := UserFavoriteRelation{
+		UserId:  user.Id,
+		VideoId: int64(videoId),
+	}
+	err = tx.Create(&ufr).Error
+	if err != nil {
+		logrus.Error("新增视频信息失败", err)
+		tx.Rollback()
+		return
+	}
+	//把video结构体里的IsFavorite改为true
+	//video的favorite_count+1
+	err = tx.Model(&Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": true, "favorite_count": gorm.Expr("favorite_count + ?", "1")}).Error
+	if err != nil {
+		logrus.Error("修改视频信息失败", err)
+		tx.Rollback()
+		return
+	}
+	tx.Commit()
+	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "like success"})
+	return
+}
+
+//取消赞
+func unlikeAct(c *gin.Context, user User, videoId int) (err error) {
+	tx := dao.DB.Begin()
+	err = tx.Where("user_id = ? and video_id = ?", user.Id, videoId).Delete(&UserFavoriteRelation{}).Error
+	if err != nil {
+		logrus.Error("删除视频信息失败", err)
+		tx.Rollback()
+		return
+	}
+	//把video结构体里的IsFavorite改为false
+	//video的favorite_count-1
+	err = tx.Model(&Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": false, "favorite_count": gorm.Expr("favorite_count - ?", "1")}).Error
+	if err != nil {
+		logrus.Error("修改视频信息失败", err)
+		tx.Rollback()
+		return
+	}
+	tx.Commit()
+	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "unlike success"})
 	return
 }
