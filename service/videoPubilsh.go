@@ -14,67 +14,68 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 )
 
+var videoIdSequence = int64(0)
+
 func PublishService(c *gin.Context) (err error) {
-	user := User{}
 	token := c.PostForm("token")
-	title := c.PostForm("title")
-	err = dao.DB.Where("token = ?", token).Find(&user).Count(&count).Error
-	if err != nil {
-		logrus.Error("查询token失败", err)
-		return
-	}
-	if count == 0 {
+	user, exist, err := CheckToken(token)
+	if exist {
+		//获取视频文件数据
+		title := c.PostForm("title")
+		data, err := c.FormFile("data")
+		if err != nil {
+			c.JSON(http.StatusOK, Response{
+				StatusCode: 1,
+				StatusMsg:  err.Error(),
+			})
+			return err
+		}
+		//设定文件名
+		finalName := fmt.Sprintf("%d_%s", user.Id, data.Filename)
+		//设定路径public文件夹下
+		saveFile := filepath.Join("./public/", finalName)
+		//保存文件
+		if err = c.SaveUploadedFile(data, saveFile); err != nil {
+			c.JSON(http.StatusOK, Response{
+				StatusCode: 1,
+				StatusMsg:  err.Error(),
+			})
+			return err
+		}
+		snapShotName := finalName + "-cover.jpeg"
+		ip := getIp()
+		if err != nil {
+			logrus.Error("获取ip失败", err)
+			return err
+		}
+		getSnapShot(snapShotName, saveFile)
+		atomic.AddInt64(&videoIdSequence, 1)
+		video := Video{
+			Id:            videoIdSequence,
+			Author:        user,
+			PlayUrl:       "http://" + ip + ":8080/static/" + finalName,
+			CoverUrl:      "http://" + ip + ":8080/static/" + snapShotName,
+			FavoriteCount: 0,
+			CommentCount:  0,
+			IsFavorite:    false,
+			Title:         title,
+		}
+		err = dao.DB.Create(&video).Error
+		if err != nil {
+			logrus.Error("插入视频失败", err)
+			return err
+		}
+		c.JSON(http.StatusOK, Response{
+			StatusCode: 0,
+			StatusMsg:  finalName + " uploaded successfully",
+		})
+	} else {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
 		return
 	}
-	//获取视频文件数据
-	data, err := c.FormFile("data")
-	if err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
-		return
-	}
-	//设定文件名
-	finalName := fmt.Sprintf("%d_%s", user.Id, data.Filename)
-	//设定路径public文件夹下
-	saveFile := filepath.Join("./public/", finalName)
-	//保存文件
-	if err = c.SaveUploadedFile(data, saveFile); err != nil {
-		c.JSON(http.StatusOK, Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
-		return
-	}
-	snapShotName := finalName + "-cover.jpeg"
-	ip := getIp()
-	if err != nil {
-		logrus.Error("获取ip失败", err)
-		return
-	}
-	getSnapShot(snapShotName, saveFile)
-	video := Video{
-		Author:        user,
-		PlayUrl:       "http://" + ip + ":8080/static/" + finalName,
-		CoverUrl:      "http://" + ip + ":8080/static/" + snapShotName,
-		FavoriteCount: 0,
-		CommentCount:  0,
-		IsFavorite:    false,
-		Title:         title,
-	}
-	err = dao.DB.Create(&video).Error
-	if err != nil {
-		logrus.Error("插入视频失败", err)
-		return
-	}
-	c.JSON(http.StatusOK, Response{
-		StatusCode: 0,
-		StatusMsg:  finalName + " uploaded successfully",
-	})
 	return
 }
 

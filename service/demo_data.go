@@ -1,8 +1,6 @@
 package service
 
-import (
-	"github.com/RaymondCode/simple-demo/dao"
-)
+import "github.com/RaymondCode/simple-demo/dao"
 
 var U1 User
 var U2 User
@@ -17,7 +15,6 @@ func InitDemo() {
 		FollowerCount: 0,
 		IsFollow:      false,
 		Password:      GetMD5("123123"),
-		Token:         "zhangsan" + GetMD5("123123"),
 	}
 	U2 = User{
 		Id:            2,
@@ -26,7 +23,6 @@ func InitDemo() {
 		FollowerCount: 0,
 		IsFollow:      false,
 		Password:      GetMD5("123123"),
-		Token:         "lisi" + GetMD5("123123"),
 	}
 	dao.DB.Create(&U1)
 	dao.DB.Create(&U2)

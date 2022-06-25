@@ -7,27 +7,34 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"sync/atomic"
 )
+
+var userIdSequence = int64(2)
 
 func RegisterService(c *gin.Context) (err error) {
 	username := c.Query("username")
 	password := GetMD5(c.Query("password"))
-	token := username + password
-
-	user := User{}
-	err = dao.DB.Where("token = ?", token).Find(&user).Count(&count).Error
+	token, err := GetToken(username, password)
 	if err != nil {
-		logrus.Error("查询token失败", err)
+		logrus.Error("获取token失败", err)
 		return
-	} //如果查询到已存在对应的token，返回错误信息“已存在”
+	}
+	user := User{}
+	err = dao.DB.Where("name = ? ", username).Find(&user).Count(&count).Error
+	if err != nil {
+		logrus.Error("查询name失败", err)
+		return
+	} //如果查询到已存在对应的name，返回错误信息“已存在”
 	if count == 1 {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
 		//如果查询到不存在，则往数据库里添加对应的用户信息
 	} else if count == 0 {
+		atomic.AddInt64(&userIdSequence, 1)
 		newUser := User{
-			//Id:       userIdSequence,
+			Id:       userIdSequence,
 			Name:     username,
 			Password: password,
 			Token:    token,

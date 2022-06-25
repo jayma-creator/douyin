@@ -25,22 +25,20 @@ type UserResponse struct {
 //关注列表
 func FollowListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
-	userList := []User{}
-	followList := []FollowFansRelation{}
+	followList := []User{}
 	//查询出当前用户关注的列表
-	err = dao.DB.Where("follow_id = ?", userId).Preload("Follower").Find(&followList).Error
+	err = dao.DB.Table("users").
+		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).
+		Find(&followList).Error
 	if err != nil {
 		logrus.Error("获取关注列表失败", err)
 		return
-	}
-	for i := 0; i < len(followList); i++ {
-		userList = append(userList, followList[i].Follower)
 	}
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: userList,
+		UserList: followList,
 	})
 	return
 }
@@ -49,15 +47,13 @@ func FollowListService(c *gin.Context) (err error) {
 func FollowerListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	fansList := []User{}
-	followList := []FollowFansRelation{}
 	//查询出当前用户的粉丝列表
-	err = dao.DB.Where("follower_id = ?", userId).Preload("Follow").Find(&followList).Error
+	err = dao.DB.Table("users").
+		Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
+		Find(&fansList).Error
 	if err != nil {
 		logrus.Error("获取粉丝列表失败", err)
 		return
-	}
-	for i := 0; i < len(followList); i++ {
-		fansList = append(fansList, followList[i].Follow)
 	}
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{

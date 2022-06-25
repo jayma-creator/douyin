@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/gin-gonic/gin v1.7.7
+	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/jinzhu/gorm v1.9.16
 	github.com/sirupsen/logrus v1.8.1
 	github.com/u2takey/ffmpeg-go v0.4.1
@@ -38,4 +39,5 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+
 )
