@@ -48,7 +48,7 @@ func CommentActionService(c *gin.Context) (err error) {
 			return
 		}
 	} else {
-		c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 1, StatusMsg: "当前用户不存在"}})
+		c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"}})
 		return
 	}
 	return
@@ -57,12 +57,21 @@ func CommentActionService(c *gin.Context) (err error) {
 //评论列表
 func CommentListService(c *gin.Context) (err error) {
 	videoId := c.Query("video_id")
-	//取出所有当前视频的评论
-	commentList := []Comment{}
-	err = dao.DB.Where("video_id = ?", videoId).Preload("User").Find(&commentList).Error
+	commentList, err := getCommentCache()
 	if err != nil {
-		logrus.Error("获取评论列表失败", err)
-		return
+		logrus.Info("查询评论列表缓存失败", err)
+	}
+	//说明redis没有缓存，改为从数据库读取,并缓存到redis
+	if len(commentList) == 0 {
+		err = dao.DB.Where("video_id = ?", videoId).Preload("User").Preload("Video").Preload("Video.Author").Order("created_at desc").Find(&commentList).Error
+		if err != nil {
+			return
+		}
+		//缓存到redis
+		err = setRedisCache("commentList", commentList)
+		if err != nil {
+			logrus.Error("缓存失败")
+		}
 	}
 	c.JSON(http.StatusOK, CommentListResponse{
 		Response:    Response{StatusCode: 0},
@@ -84,6 +93,7 @@ func comment(c *gin.Context, user User, videoId int) (err error) {
 		CreateDate: time.Now().Format("2006-01-02 15:04:05")[5:10], //按格式输出日期，5:10表示月-日
 		VideoId:    int64(videoId),
 	}
+
 	err = tx.Create(&comment).Error
 	if err != nil {
 		logrus.Error("插入评论信息失败", err)
@@ -97,7 +107,19 @@ func comment(c *gin.Context, user User, videoId int) (err error) {
 		tx.Rollback()
 		return
 	}
+
+	//删除redis缓存
+	err = delCache("commentList")
+	if err != nil {
+		return
+	}
+
 	tx.Commit()
+
+	//延时双删
+	time.Sleep(time.Millisecond * 50)
+	err = delCache("commentList")
+
 	c.JSON(http.StatusOK, CommentActionResponse{
 		Response: Response{StatusCode: 0, StatusMsg: "评论成功"},
 		Comment:  comment,
@@ -122,7 +144,17 @@ func deleteComment(c *gin.Context, videoId int) (err error) {
 		tx.Rollback()
 		return
 	}
+	//删除redis缓存
+	err = delCache("commentList")
+	if err != nil {
+		return
+	}
+
 	tx.Commit()
+	//延时双删
+	time.Sleep(time.Millisecond * 50)
+	err = delCache("commentList")
+
 	c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0, StatusMsg: "删除评论成功"}})
 	return
 }

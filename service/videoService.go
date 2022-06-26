@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -43,7 +44,7 @@ func FavoriteActionService(c *gin.Context) (err error) {
 			return
 		}
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户不存在"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
 		return
 	}
 	return
@@ -53,14 +54,25 @@ func FavoriteActionService(c *gin.Context) (err error) {
 func FavoriteListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	//查询出当前登录的用户点赞过的视频列表
-	videoList := []Video{}
-	err = dao.DB.Table("videos").
-		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", userId).Preload("Author").
-		Find(&videoList).Error
+	videoList, err := getFavoriteListCache(userId)
 	if err != nil {
-		logrus.Error("获取点赞列表失败", err)
-		return
+		logrus.Info("查询点赞列表缓存失败", err)
 	}
+	//没有缓存，从数据库取，并缓存到redis
+	if len(videoList) == 0 {
+		err = dao.DB.Table("videos").
+			Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", userId).Preload("Author").
+			Find(&videoList).Error
+		if err != nil {
+			logrus.Error("获取点赞列表失败", err)
+			return
+		}
+		err = setRedisCache(fmt.Sprintf("favoriteList%v", userId), videoList)
+		if err != nil {
+			logrus.Error("缓存失败")
+		}
+	}
+
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
@@ -74,12 +86,23 @@ func FavoriteListService(c *gin.Context) (err error) {
 func PublishListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	//查询出当前用户发布过的视频列表
-	videoList := []Video{}
-	err = dao.DB.Where("author_id = ?", userId).Preload("Author").Find(&videoList).Error
+	videoList, err := getPublishListCache(userId)
 	if err != nil {
-		logrus.Error("获取发布列表失败", err)
-		return
+		logrus.Info("查询发布列表缓存失败", err)
 	}
+	//没有缓存，从数据库取，并缓存到redis
+	if len(videoList) == 0 {
+		err = dao.DB.Where("author_id = ?", userId).Preload("Author").Find(&videoList).Error
+		if err != nil {
+			logrus.Error("获取发布列表失败", err)
+			return
+		}
+		err = setRedisCache(fmt.Sprintf("publishList%v", userId), videoList)
+		if err != nil {
+			logrus.Error("缓存失败")
+		}
+	}
+
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,

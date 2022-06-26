@@ -42,7 +42,7 @@ func RelationActionService(c *gin.Context) (err error) {
 			return
 		}
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "当前用户不存在"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
 		return
 	}
 	return

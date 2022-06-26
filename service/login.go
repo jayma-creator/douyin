@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -13,7 +12,6 @@ func LoginService(c *gin.Context) (err error) {
 	username := c.Query("username")
 	password := GetMD5(c.Query("password"))
 	token, err := GetToken(username, password)
-	fmt.Println(token)
 	if err != nil {
 		logrus.Error("获取token失败", err)
 		return

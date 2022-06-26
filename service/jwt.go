@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ func GetToken(username string, password string) (tokenString string, err error) 
 		Username: username, // 自定义字段
 		Password: password,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 6 * time.Duration(1))), // 过期时间
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 7 * time.Duration(1))), // 过期时间
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "ma", // 签发人
@@ -46,13 +47,17 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 		ve, ok := err.(*jwt.ValidationError)
 		if ok {
 			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				return nil, errors.New("that is not even a token")
+				logrus.Error("that is not even a token")
+				return nil, err
 			} else if ve.Errors&jwt.ValidationErrorExpired != 0 {
-				return nil, errors.New("token is expired")
+				logrus.Error("token is expired")
+				return nil, err
 			} else if ve.Errors&jwt.ValidationErrorNotValidYet != 0 {
-				return nil, errors.New("token not active yet")
+				logrus.Error("token not active yet")
+				return nil, err
 			} else {
-				return nil, errors.New("counld not handle this token")
+				logrus.Error("could not handle this token")
+				return nil, err
 			}
 		}
 	}
@@ -71,12 +76,13 @@ func CheckToken(token string) (User, bool, error) {
 		return user, false, err
 	}
 	err = dao.DB.Where("name = ? and password = ?", claims.Username, claims.Password).Find(&user).Count(&count).Error
+	fmt.Println(claims.Username, claims.Password)
 	if err != nil {
 		logrus.Error("token is invalid", err)
 		return user, false, err
 	}
 	if count == 0 {
-		logrus.Error("用户不存在", err)
+		logrus.Error("token已过期", err)
 		return user, false, err
 	}
 	return user, true, err

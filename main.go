@@ -21,6 +21,8 @@ func main() {
 		fmt.Printf("init mysql failed, err:%v\n", err)
 		return
 	}
+	dao.InitRedisPool()
+
 	r := gin.Default()
 	router.InitRouter(r)
 

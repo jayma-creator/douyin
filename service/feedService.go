@@ -58,6 +58,7 @@ func FeedService(c *gin.Context) (err error) {
 	return
 }
 
+//匹配当前登录的账号是否已关注别的账号，是否点赞视频
 func checkUserSetting(user User) (err error) {
 	tx := dao.DB.Begin()
 	//匹配当前登录的账号是否已关注别的账号

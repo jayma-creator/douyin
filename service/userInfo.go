@@ -16,7 +16,7 @@ func UserInfoService(c *gin.Context) (err error) {
 		})
 	} else {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
+			Response: Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"},
 		})
 		return
 	}

@@ -73,7 +73,7 @@ func PublishService(c *gin.Context) (err error) {
 			StatusMsg:  finalName + " uploaded successfully",
 		})
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "User doesn't exist"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
 		return
 	}
 	return
