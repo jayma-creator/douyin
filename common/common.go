@@ -1,4 +1,4 @@
-package service
+package common
 
 import (
 	"gorm.io/gorm"

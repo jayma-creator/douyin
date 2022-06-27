@@ -1,14 +1,17 @@
 package service
 
 import (
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
+var count int64
+
 func LoginService(c *gin.Context) (err error) {
-	user := User{}
+	user := common.User{}
 	username := c.Query("username")
 	password := GetMD5(c.Query("password"))
 	token, err := GetToken(username, password)
@@ -24,13 +27,13 @@ func LoginService(c *gin.Context) (err error) {
 	//如果没有对应的name，返回错误信息“用户不存在”
 	if count == 0 {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "用户不存在"},
+			Response: common.Response{StatusCode: 1, StatusMsg: "用户不存在"},
 		})
 		return
 		//如果token不匹配，提示密码错误
 	} else if count == 1 && password != user.Password {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "密码错误"},
+			Response: common.Response{StatusCode: 1, StatusMsg: "密码错误"},
 		})
 		return
 	} else if count == 1 && password == user.Password {
@@ -40,7 +43,7 @@ func LoginService(c *gin.Context) (err error) {
 			return
 		}
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 0},
+			Response: common.Response{StatusCode: 0},
 			UserId:   user.Id,
 			Token:    token,
 		})

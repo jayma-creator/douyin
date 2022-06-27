@@ -1,14 +1,17 @@
 package service
 
-import "github.com/RaymondCode/simple-demo/dao"
+import (
+	"github.com/RaymondCode/simple-demo/common"
+	"github.com/RaymondCode/simple-demo/dao"
+)
 
-var U1 User
-var U2 User
+var U1 common.User
+var U2 common.User
 
 func InitDemo() {
 	//测试用例，启动直接写在数据库
 	//用户u1，u2
-	U1 = User{
+	U1 = common.User{
 		Id:            1,
 		Name:          "zhangsan",
 		FollowCount:   0,
@@ -16,7 +19,7 @@ func InitDemo() {
 		IsFollow:      false,
 		Password:      GetMD5("123123"),
 	}
-	U2 = User{
+	U2 = common.User{
 		Id:            2,
 		Name:          "lisi",
 		FollowCount:   0,

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -9,18 +10,18 @@ import (
 )
 
 type UserListResponse struct {
-	Response
-	UserList []User `json:"user_list"`
+	common.Response
+	UserList []common.User `json:"user_list"`
 }
 type UserLoginResponse struct {
-	Response
+	common.Response
 	UserId int64  `json:"user_id,omitempty"`
 	Token  string `json:"token"`
 }
 
 type UserResponse struct {
-	Response
-	User User `json:"user"`
+	common.Response
+	User common.User `json:"user"`
 }
 
 //关注列表
@@ -48,7 +49,7 @@ func FollowListService(c *gin.Context) (err error) {
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
-		Response: Response{
+		Response: common.Response{
 			StatusCode: 0,
 		},
 		UserList: followList,
@@ -80,7 +81,7 @@ func FollowerListService(c *gin.Context) (err error) {
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
-		Response: Response{
+		Response: common.Response{
 			StatusCode: 0,
 		},
 		UserList: fansList,

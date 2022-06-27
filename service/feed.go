@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -9,26 +10,26 @@ import (
 )
 
 type FeedResponse struct {
-	Response
-	VideoList []Video `json:"video_list,omitempty"`
-	NextTime  int64   `json:"next_time,omitempty"`
+	common.Response
+	VideoList []common.Video `json:"video_list,omitempty"`
+	NextTime  int64          `json:"next_time,omitempty"`
 }
 
 func FeedService(c *gin.Context) (err error) {
 	token := c.Query("token")
-	videoList := []Video{}
+	videoList := []common.Video{}
 	//把数据库里所有视频放在videoList内,且按照创建时间降序排列
 	//无用户登录
 	if token == "" {
 		tx := dao.DB.Begin()
 		//每次获取先把点赞图标和用户关注改为false
-		err = tx.Model(Video{}).Where("is_favorite = ?", true).Update("is_favorite", false).Error
+		err = tx.Model(common.Video{}).Where("is_favorite = ?", true).Update("is_favorite", false).Error
 		if err != nil {
 			logrus.Error("修改失败", err)
 			tx.Rollback()
 			return
 		}
-		err = tx.Model(User{}).Where("is_follow = ?", true).Update("is_follow", false).Error
+		err = tx.Model(common.User{}).Where("is_follow = ?", true).Update("is_follow", false).Error
 		if err != nil {
 			logrus.Error("修改失败", err)
 			tx.Rollback()
@@ -36,10 +37,12 @@ func FeedService(c *gin.Context) (err error) {
 		}
 		tx.Commit()
 	} else {
-		token = c.Query("token")
-		user, exist, err := CheckToken(token)
+		u, _ := c.Get("user")
+		e, _ := c.Get("exist")
+		user := u.(common.User)
+		exist := e.(bool)
 		if exist {
-			checkUserSetting(user)
+			err = checkUserSetting(user)
 			if err != nil {
 				return err
 			}
@@ -51,7 +54,7 @@ func FeedService(c *gin.Context) (err error) {
 		return
 	}
 	c.JSON(http.StatusOK, FeedResponse{
-		Response:  Response{StatusCode: 0},
+		Response:  common.Response{StatusCode: 0},
 		VideoList: videoList,
 		NextTime:  time.Now().Unix(),
 	})
@@ -59,10 +62,10 @@ func FeedService(c *gin.Context) (err error) {
 }
 
 //匹配当前登录的账号是否已关注别的账号，是否点赞视频
-func checkUserSetting(user User) (err error) {
+func checkUserSetting(user common.User) (err error) {
 	tx := dao.DB.Begin()
 	//匹配当前登录的账号是否已关注别的账号
-	users := []User{}
+	users := []common.User{}
 	err = tx.Table("users").
 		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", user.Id).
 		Find(&users).Error
@@ -72,7 +75,7 @@ func checkUserSetting(user User) (err error) {
 		return err
 	}
 	for i := 0; i < len(users); i++ {
-		err = tx.Model(&User{}).Where("id = ?", users[i].Id).Update("is_follow", true).Error
+		err = tx.Model(&common.User{}).Where("id = ?", users[i].Id).Update("is_follow", true).Error
 		if err != nil {
 			logrus.Error("修改失败", err)
 			tx.Rollback()
@@ -81,7 +84,7 @@ func checkUserSetting(user User) (err error) {
 	}
 
 	//匹配当前登录的账号是否已点赞视频
-	videos := []Video{}
+	videos := []common.Video{}
 	err = tx.Table("videos").
 		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", user.Id).
 		Find(&videos).Error
@@ -92,7 +95,7 @@ func checkUserSetting(user User) (err error) {
 	}
 	for i := 0; i < len(videos); i++ {
 		//videos[i].IsFavorite = true
-		err = tx.Model(&Video{}).Where("id = ?", videos[i].Id).Update("is_favorite", true).Error
+		err = tx.Model(&common.Video{}).Where("id = ?", videos[i].Id).Update("is_favorite", true).Error
 		if err != nil {
 			logrus.Error("修改失败", err)
 			tx.Rollback()

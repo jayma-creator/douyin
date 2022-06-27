@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/RaymondCode/simple-demo/router"
 	"github.com/RaymondCode/simple-demo/service"
@@ -26,11 +27,11 @@ func main() {
 	r := gin.Default()
 	router.InitRouter(r)
 
-	dao.DB.AutoMigrate(&service.User{})
-	dao.DB.AutoMigrate(&service.Comment{})
-	dao.DB.AutoMigrate(&service.Video{})
-	dao.DB.AutoMigrate(&service.FollowFansRelation{})
-	dao.DB.AutoMigrate(&service.UserFavoriteRelation{})
+	dao.DB.AutoMigrate(&common.User{})
+	dao.DB.AutoMigrate(&common.Comment{})
+	dao.DB.AutoMigrate(&common.Video{})
+	dao.DB.AutoMigrate(&common.FollowFansRelation{})
+	dao.DB.AutoMigrate(&common.UserFavoriteRelation{})
 
 	service.InitDemo() //初始化测试数据
 

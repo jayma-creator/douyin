@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/garyburd/redigo/redis"
 	"github.com/sirupsen/logrus"
 )
 
-func getCommentCache(videoId string) (commentList []Comment, err error) {
+func getCommentCache(videoId string) (commentList []common.Comment, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -26,7 +27,7 @@ func getCommentCache(videoId string) (commentList []Comment, err error) {
 	return
 }
 
-func getPublishListCache(userId string) (videoList []Video, err error) {
+func getPublishListCache(userId string) (videoList []common.Video, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -43,7 +44,7 @@ func getPublishListCache(userId string) (videoList []Video, err error) {
 	return
 }
 
-func getFavoriteListCache(userId string) (videoList []Video, err error) {
+func getFavoriteListCache(userId string) (videoList []common.Video, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -60,7 +61,7 @@ func getFavoriteListCache(userId string) (videoList []Video, err error) {
 	return
 }
 
-func getFollowListCache(userId string) (followList []User, err error) {
+func getFollowListCache(userId string) (followList []common.User, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -77,7 +78,7 @@ func getFollowListCache(userId string) (followList []User, err error) {
 	return
 }
 
-func getFanListCache(userId string) (fanList []User, err error) {
+func getFanListCache(userId string) (fanList []common.User, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -127,4 +128,8 @@ func delCache(key string) (err error) {
 		logrus.Infof("删除%s缓存失败,err:%v", key, err)
 	}
 	return
+}
+
+func setToken() {
+
 }

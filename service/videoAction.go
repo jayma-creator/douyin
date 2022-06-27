@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -12,8 +13,8 @@ import (
 )
 
 type VideoListResponse struct {
-	Response
-	VideoList []Video `json:"video_list"`
+	common.Response
+	VideoList []common.Video `json:"video_list"`
 }
 
 const (
@@ -23,12 +24,13 @@ const (
 
 //点赞与取消
 func FavoriteActionService(c *gin.Context) (err error) {
-	user := User{}
-	token := c.Query("token")
 	videoIdStr := c.Query("video_id")
 	actionType := c.Query("action_type")
 	videoId, _ := strconv.Atoi(videoIdStr)
-	user, exist, err := CheckToken(token)
+	u, _ := c.Get("user")
+	e, _ := c.Get("exist")
+	user := u.(common.User)
+	exist := e.(bool)
 	if exist {
 		if actionType == like {
 			err = likeAct(c, user, videoId)
@@ -41,11 +43,11 @@ func FavoriteActionService(c *gin.Context) (err error) {
 				return
 			}
 		} else {
-			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 1, StatusMsg: "错误操作"}})
+			c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 1, StatusMsg: "错误操作"}})
 			return
 		}
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
 		return
 	}
 	return
@@ -76,7 +78,7 @@ func FavoriteListService(c *gin.Context) (err error) {
 	}
 
 	c.JSON(http.StatusOK, VideoListResponse{
-		Response: Response{
+		Response: common.Response{
 			StatusCode: 0,
 		},
 		VideoList: videoList,
@@ -109,7 +111,7 @@ func PublishListService(c *gin.Context) (err error) {
 	}
 
 	c.JSON(http.StatusOK, VideoListResponse{
-		Response: Response{
+		Response: common.Response{
 			StatusCode: 0,
 		},
 		VideoList: videoList,
@@ -118,9 +120,9 @@ func PublishListService(c *gin.Context) (err error) {
 }
 
 //点赞
-func likeAct(c *gin.Context, user User, videoId int) (err error) {
+func likeAct(c *gin.Context, user common.User, videoId int) (err error) {
 	tx := dao.DB.Begin()
-	ufr := UserFavoriteRelation{
+	ufr := common.UserFavoriteRelation{
 		UserId:  user.Id,
 		VideoId: int64(videoId),
 	}
@@ -132,7 +134,7 @@ func likeAct(c *gin.Context, user User, videoId int) (err error) {
 	}
 	//把video结构体里的IsFavorite改为true
 	//video的favorite_count+1
-	err = tx.Model(&Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": true, "favorite_count": gorm.Expr("favorite_count + ?", "1")}).Error
+	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": true, "favorite_count": gorm.Expr("favorite_count + ?", "1")}).Error
 	if err != nil {
 		logrus.Error("修改视频信息失败", err)
 		tx.Rollback()
@@ -152,14 +154,14 @@ func likeAct(c *gin.Context, user User, videoId int) (err error) {
 		return
 	}
 
-	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "like success"})
+	c.JSON(http.StatusOK, common.Response{StatusCode: 0, StatusMsg: "like success"})
 	return
 }
 
 //取消赞
-func unlikeAct(c *gin.Context, user User, videoId int) (err error) {
+func unlikeAct(c *gin.Context, user common.User, videoId int) (err error) {
 	tx := dao.DB.Begin()
-	err = tx.Where("user_id = ? and video_id = ?", user.Id, videoId).Delete(&UserFavoriteRelation{}).Error
+	err = tx.Where("user_id = ? and video_id = ?", user.Id, videoId).Delete(&common.UserFavoriteRelation{}).Error
 	if err != nil {
 		logrus.Error("删除视频信息失败", err)
 		tx.Rollback()
@@ -167,7 +169,7 @@ func unlikeAct(c *gin.Context, user User, videoId int) (err error) {
 	}
 	//把video结构体里的IsFavorite改为false
 	//video的favorite_count-1
-	err = tx.Model(&Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": false, "favorite_count": gorm.Expr("favorite_count - ?", "1")}).Error
+	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": false, "favorite_count": gorm.Expr("favorite_count - ?", "1")}).Error
 	if err != nil {
 		logrus.Error("修改视频信息失败", err)
 		tx.Rollback()
@@ -186,6 +188,6 @@ func unlikeAct(c *gin.Context, user User, videoId int) (err error) {
 		return
 	}
 
-	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "unlike success"})
+	c.JSON(http.StatusOK, common.Response{StatusCode: 0, StatusMsg: "unlike success"})
 	return
 }

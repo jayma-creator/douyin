@@ -2,8 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
-	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -25,7 +23,7 @@ func GetToken(username string, password string) (tokenString string, err error) 
 		Username: username, // 自定义字段
 		Password: password,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * time.Duration(1))), // 过期时间24小时
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 10 * time.Duration(1))), // 设置为永久，改用redis来控制时间
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "ma", // 签发人
@@ -66,24 +64,4 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 		return claims, nil
 	}
 	return nil, errors.New("invalid token")
-}
-
-func CheckToken(token string) (User, bool, error) {
-	user := User{}
-	claims, err := ParseToken(token)
-	if err != nil {
-		logrus.Error(err)
-		return user, false, err
-	}
-	err = dao.DB.Where("name = ? and password = ?", claims.Username, claims.Password).Find(&user).Count(&count).Error
-	fmt.Println(claims.Username, claims.Password)
-	if err != nil {
-		logrus.Error("token is invalid", err)
-		return user, false, err
-	}
-	if count == 0 {
-		logrus.Error("token已过期", err)
-		return user, false, err
-	}
-	return user, true, err
 }

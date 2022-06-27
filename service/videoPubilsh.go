@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
@@ -21,14 +22,16 @@ import (
 var videoIdSequence = int64(2)
 
 func PublishService(c *gin.Context) (err error) {
-	token := c.PostForm("token")
-	user, exist, err := CheckToken(token)
+	u, _ := c.Get("user")
+	e, _ := c.Get("exist")
+	user := u.(common.User)
+	exist := e.(bool)
 	if exist {
 		//获取视频文件数据
 		title := c.PostForm("title")
 		data, err := c.FormFile("data")
 		if err != nil {
-			c.JSON(http.StatusOK, Response{
+			c.JSON(http.StatusOK, common.Response{
 				StatusCode: 1,
 				StatusMsg:  err.Error(),
 			})
@@ -40,7 +43,7 @@ func PublishService(c *gin.Context) (err error) {
 		saveFile := filepath.Join("./public/", finalName)
 		//保存文件
 		if err = c.SaveUploadedFile(data, saveFile); err != nil {
-			c.JSON(http.StatusOK, Response{
+			c.JSON(http.StatusOK, common.Response{
 				StatusCode: 1,
 				StatusMsg:  err.Error(),
 			})
@@ -54,7 +57,7 @@ func PublishService(c *gin.Context) (err error) {
 		}
 		getSnapShot(snapShotName, saveFile)
 		atomic.AddInt64(&videoIdSequence, 1)
-		video := Video{
+		video := common.Video{
 			Id:            videoIdSequence,
 			Author:        user,
 			PlayUrl:       "http://" + ip + ":8080/static/" + finalName,
@@ -82,12 +85,12 @@ func PublishService(c *gin.Context) (err error) {
 			return err
 		}
 
-		c.JSON(http.StatusOK, Response{
+		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 0,
 			StatusMsg:  finalName + " uploaded successfully",
 		})
 	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
+		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
 		return
 	}
 	return

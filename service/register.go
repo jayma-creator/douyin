@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -20,7 +21,7 @@ func RegisterService(c *gin.Context) (err error) {
 		logrus.Error("获取token失败", err)
 		return
 	}
-	user := User{}
+	user := common.User{}
 	err = dao.DB.Where("name = ? ", username).Find(&user).Count(&count).Error
 	if err != nil {
 		logrus.Error("查询name失败", err)
@@ -28,12 +29,12 @@ func RegisterService(c *gin.Context) (err error) {
 	} //如果查询到已存在对应的name，返回错误信息“已存在”
 	if count == 1 {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
+			Response: common.Response{StatusCode: 1, StatusMsg: "User already exist"},
 		})
 		//如果查询到不存在，则往数据库里添加对应的用户信息
 	} else if count == 0 {
 		atomic.AddInt64(&userIdSequence, 1)
-		newUser := User{
+		newUser := common.User{
 			Id:       userIdSequence,
 			Name:     username,
 			Password: password,
@@ -46,7 +47,7 @@ func RegisterService(c *gin.Context) (err error) {
 			return
 		}
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 0},
+			Response: common.Response{StatusCode: 0},
 			UserId:   user.Id,
 			Token:    token,
 		})

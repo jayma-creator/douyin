@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -17,19 +18,22 @@ const (
 )
 
 type CommentListResponse struct {
-	Response
-	CommentList []Comment `json:"comment_list,omitempty"`
+	common.Response
+	CommentList []common.Comment `json:"comment_list,omitempty"`
 }
 
 type CommentActionResponse struct {
-	Response
-	Comment Comment `json:"comment,omitempty"`
+	common.Response
+	Comment common.Comment `json:"comment,omitempty"`
 }
 
 //评论和删除评论
 func CommentActionService(c *gin.Context) (err error) {
-	token := c.Query("token")
-	user, exist, err := CheckToken(token)
+	u, _ := c.Get("user")
+	e, _ := c.Get("exist")
+	user := u.(common.User)
+	exist := e.(bool)
+
 	if exist {
 		actionType := c.Query("action_type")
 		videoIdStr := c.Query("video_id")
@@ -45,11 +49,11 @@ func CommentActionService(c *gin.Context) (err error) {
 				return
 			}
 		} else {
-			c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 1, StatusMsg: "错误操作"}})
+			c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 1, StatusMsg: "错误操作"}})
 			return
 		}
 	} else {
-		c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"}})
+		c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"}})
 		return
 	}
 	return
@@ -75,19 +79,19 @@ func CommentListService(c *gin.Context) (err error) {
 		}
 	}
 	c.JSON(http.StatusOK, CommentListResponse{
-		Response:    Response{StatusCode: 0},
+		Response:    common.Response{StatusCode: 0},
 		CommentList: commentList,
 	})
 	return
 }
 
 //新增评论
-func comment(c *gin.Context, user User, videoId int) (err error) {
+func comment(c *gin.Context, user common.User, videoId int) (err error) {
 	userId := user.Id
 	tx := dao.DB.Begin()
 	text := c.Query("comment_text")
 	//新增评论
-	comment := Comment{
+	comment := common.Comment{
 		Content:    text,
 		UserId:     userId,
 		User:       user,
@@ -102,7 +106,7 @@ func comment(c *gin.Context, user User, videoId int) (err error) {
 		return
 	}
 	//video的comment_count+1
-	err = tx.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", "1")).Error
+	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", "1")).Error
 	if err != nil {
 		logrus.Error("修改评论数失败", err)
 		tx.Rollback()
@@ -122,7 +126,7 @@ func comment(c *gin.Context, user User, videoId int) (err error) {
 	err = delCache(fmt.Sprintf("commentList%v", videoId))
 
 	c.JSON(http.StatusOK, CommentActionResponse{
-		Response: Response{StatusCode: 0, StatusMsg: "评论成功"},
+		Response: common.Response{StatusCode: 0, StatusMsg: "评论成功"},
 		Comment:  comment,
 	})
 	return
@@ -132,14 +136,14 @@ func comment(c *gin.Context, user User, videoId int) (err error) {
 func deleteComment(c *gin.Context, videoId int) (err error) {
 	tx := dao.DB.Begin()
 	commentId := c.Query("comment_id")
-	err = tx.Where("id = ?", commentId).Delete(&Comment{}).Error
+	err = tx.Where("id = ?", commentId).Delete(&common.Comment{}).Error
 	if err != nil {
 		logrus.Error("删除评论信息失败", err)
 		tx.Rollback()
 		return
 	}
 	//video的comment_count-1
-	err = tx.Model(&Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count - ?", "1")).Error
+	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count - ?", "1")).Error
 	if err != nil {
 		logrus.Error("修改评论信息失败", err)
 		tx.Rollback()
@@ -156,6 +160,6 @@ func deleteComment(c *gin.Context, videoId int) (err error) {
 	time.Sleep(time.Millisecond * 50)
 	err = delCache(fmt.Sprintf("commentList%v", videoId))
 
-	c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0, StatusMsg: "删除评论成功"}})
+	c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 0, StatusMsg: "删除评论成功"}})
 	return
 }
