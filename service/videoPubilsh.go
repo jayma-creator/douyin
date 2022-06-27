@@ -1,20 +1,14 @@
 package service
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
-	"github.com/disintegration/imaging"
+	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	ffmpeg "github.com/u2takey/ffmpeg-go"
-	"io"
-	"net"
 	"net/http"
-	"os"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -50,12 +44,12 @@ func PublishService(c *gin.Context) (err error) {
 			return err
 		}
 		snapShotName := finalName + "-cover.jpeg"
-		ip := getIp()
+		ip := util.GetIp()
 		if err != nil {
 			logrus.Error("获取ip失败", err)
 			return err
 		}
-		getSnapShot(snapShotName, saveFile)
+		util.GetSnapShot(snapShotName, saveFile)
 		atomic.AddInt64(&videoIdSequence, 1)
 		video := common.Video{
 			Id:            videoIdSequence,
@@ -91,49 +85,6 @@ func PublishService(c *gin.Context) (err error) {
 		})
 	} else {
 		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
-		return
-	}
-	return
-}
-
-//获取当前主机IP
-func getIp() string {
-	conn, err := net.Dial("udp", "google.com:80")
-	if err != nil {
-		logrus.Error("获取ip失败", err)
-		return ""
-	}
-	defer conn.Close()
-	ip := strings.Split(conn.LocalAddr().String(), ":")[0]
-	return ip
-}
-
-//截图做封面
-func ExampleReadFrameAsJpeg(inFileName string, frameNum int) io.Reader {
-	buf := bytes.NewBuffer(nil)
-	err := ffmpeg.Input(inFileName).
-		Filter("select", ffmpeg.Args{fmt.Sprintf("gte(n,%d)", frameNum)}).
-		Output("pipe:", ffmpeg.KwArgs{"vframes": 1, "format": "image2", "vcodec": "mjpeg"}).
-		WithOutput(buf, os.Stdout).
-		Run()
-	if err != nil {
-		logrus.Error("获取封面失败", err)
-		return nil
-	}
-	return buf
-}
-
-//保存截图
-func getSnapShot(snapShotName string, videoFilePath string) {
-	reader := ExampleReadFrameAsJpeg(videoFilePath, 1)
-	img, err := imaging.Decode(reader)
-	if err != nil {
-		logrus.Error("保存截图失败", err)
-		return
-	}
-	err = imaging.Save(img, "./public/"+snapShotName)
-	if err != nil {
-		logrus.Error("保存截图失败", err)
 		return
 	}
 	return

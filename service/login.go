@@ -3,22 +3,22 @@ package service
 import (
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
+	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
-var count int64
-
 func LoginService(c *gin.Context) (err error) {
 	user := common.User{}
 	username := c.Query("username")
-	password := GetMD5(c.Query("password"))
-	token, err := GetToken(username, password)
+	password := util.GetMD5(c.Query("password"))
+	token, err := util.GetToken(username, password)
 	if err != nil {
 		logrus.Error("获取token失败", err)
 		return
 	}
+	var count int64
 	err = dao.DB.Where("name = ? ", username).Find(&user).Count(&count).Error
 	if err != nil {
 		logrus.Error("查询name失败", err)

@@ -27,7 +27,7 @@ func FollowList(c *gin.Context) {
 
 //粉丝列表
 func FollowerList(c *gin.Context) {
-	err := service.FollowerListService(c)
+	err := service.FanListService(c)
 	if err != nil {
 		logrus.Error(err)
 		return

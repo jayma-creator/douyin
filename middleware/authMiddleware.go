@@ -1,22 +1,17 @@
 package middleware
 
 import (
-	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
-	"github.com/RaymondCode/simple-demo/service"
+	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
-var count int64
-
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Query("token")
-		fmt.Println(111, token, 222)
-		fmt.Println(token == "")
 		if token == "" {
 			c.JSON(http.StatusOK, common.Response{
 				StatusCode: 1,
@@ -36,7 +31,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 		c.Set("user", user)
 		c.Set("exist", exist)
-
 		return
 	}
 }
@@ -65,13 +59,13 @@ func FeedAuthMiddleware() gin.HandlerFunc {
 
 func checkToken(token string) (common.User, bool, error) {
 	user := common.User{}
-	claims, err := service.ParseToken(token)
+	claims, err := util.ParseToken(token)
 	if err != nil {
 		logrus.Error(err)
 		return user, false, err
 	}
+	var count int64
 	err = dao.DB.Where("name = ? and password = ?", claims.Username, claims.Password).Find(&user).Count(&count).Error
-	fmt.Println(claims.Username, claims.Password)
 	if err != nil {
 		logrus.Error("token is invalid", err)
 		return user, false, err
