@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type VideoListResponse struct {
@@ -67,6 +68,7 @@ func FavoriteListService(c *gin.Context) (err error) {
 			logrus.Error("获取点赞列表失败", err)
 			return
 		}
+		//缓存到redis
 		err = setRedisCache(fmt.Sprintf("favoriteList%v", userId), videoList)
 		if err != nil {
 			logrus.Error("缓存失败")
@@ -90,6 +92,7 @@ func PublishListService(c *gin.Context) (err error) {
 	if err != nil {
 		logrus.Info("查询发布列表缓存失败", err)
 	}
+	fmt.Println("从redis读取缓存")
 	//没有缓存，从数据库取，并缓存到redis
 	if len(videoList) == 0 {
 		err = dao.DB.Where("author_id = ?", userId).Preload("Author").Find(&videoList).Error
@@ -97,10 +100,12 @@ func PublishListService(c *gin.Context) (err error) {
 			logrus.Error("获取发布列表失败", err)
 			return
 		}
+		fmt.Println("mysql")
 		err = setRedisCache(fmt.Sprintf("publishList%v", userId), videoList)
 		if err != nil {
 			logrus.Error("缓存失败")
 		}
+		fmt.Println("缓存到redis")
 	}
 
 	c.JSON(http.StatusOK, VideoListResponse{
@@ -133,7 +138,20 @@ func likeAct(c *gin.Context, user User, videoId int) (err error) {
 		tx.Rollback()
 		return
 	}
+
+	//删除redis缓存
+	err = delCache(fmt.Sprintf("favoriteList%v", user.Id))
+	if err != nil {
+		return
+	}
 	tx.Commit()
+	//延时双删
+	time.Sleep(time.Millisecond * 50)
+	err = delCache(fmt.Sprintf("favoriteList%v", user.Id))
+	if err != nil {
+		return
+	}
+
 	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "like success"})
 	return
 }
@@ -155,7 +173,19 @@ func unlikeAct(c *gin.Context, user User, videoId int) (err error) {
 		tx.Rollback()
 		return
 	}
+	//删除redis缓存
+	err = delCache(fmt.Sprintf("favoriteList%v", user.Id))
+	if err != nil {
+		return
+	}
 	tx.Commit()
+	//延时双删
+	time.Sleep(time.Millisecond * 50)
+	err = delCache(fmt.Sprintf("favoriteList%v", user.Id))
+	if err != nil {
+		return
+	}
+
 	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "unlike success"})
 	return
 }

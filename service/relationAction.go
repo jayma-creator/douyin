@@ -1,12 +1,14 @@
 package service
 
 import (
+	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 const (
@@ -81,7 +83,17 @@ func followAct(c *gin.Context, user User, toUserId int) (err error) {
 		tx.Rollback()
 		return
 	}
+	//删除redis缓存
+	err = delCache(fmt.Sprintf("followList%v", user.Id))
+	err = delCache(fmt.Sprintf("fanList%v", user.Id))
+	if err != nil {
+		return
+	}
 	tx.Commit()
+	//延时双删
+	time.Sleep(time.Millisecond * 50)
+	err = delCache(fmt.Sprintf("followList%v", user.Id))
+	err = delCache(fmt.Sprintf("fanList%v", user.Id))
 	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "关注成功"})
 	return
 }
@@ -107,7 +119,16 @@ func unFollow(c *gin.Context, user User, toUserId int) (err error) {
 		tx.Rollback()
 		return
 	}
+	err = delCache(fmt.Sprintf("followList%v", user.Id))
+	err = delCache(fmt.Sprintf("fanList%v", user.Id))
+	if err != nil {
+		return
+	}
 	tx.Commit()
+	//延时双删
+	time.Sleep(time.Millisecond * 50)
+	err = delCache(fmt.Sprintf("followList%v", user.Id))
+	err = delCache(fmt.Sprintf("fanList%v", user.Id))
 	c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "取关成功"})
 	return
 }

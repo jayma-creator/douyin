@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -57,7 +58,7 @@ func CommentActionService(c *gin.Context) (err error) {
 //评论列表
 func CommentListService(c *gin.Context) (err error) {
 	videoId := c.Query("video_id")
-	commentList, err := getCommentCache()
+	commentList, err := getCommentCache(videoId)
 	if err != nil {
 		logrus.Info("查询评论列表缓存失败", err)
 	}
@@ -68,7 +69,7 @@ func CommentListService(c *gin.Context) (err error) {
 			return
 		}
 		//缓存到redis
-		err = setRedisCache("commentList", commentList)
+		err = setRedisCache(fmt.Sprintf("commentList%v", videoId), commentList)
 		if err != nil {
 			logrus.Error("缓存失败")
 		}
@@ -109,7 +110,7 @@ func comment(c *gin.Context, user User, videoId int) (err error) {
 	}
 
 	//删除redis缓存
-	err = delCache("commentList")
+	err = delCache(fmt.Sprintf("commentList%v", videoId))
 	if err != nil {
 		return
 	}
@@ -118,7 +119,7 @@ func comment(c *gin.Context, user User, videoId int) (err error) {
 
 	//延时双删
 	time.Sleep(time.Millisecond * 50)
-	err = delCache("commentList")
+	err = delCache(fmt.Sprintf("commentList%v", videoId))
 
 	c.JSON(http.StatusOK, CommentActionResponse{
 		Response: Response{StatusCode: 0, StatusMsg: "评论成功"},
@@ -145,7 +146,7 @@ func deleteComment(c *gin.Context, videoId int) (err error) {
 		return
 	}
 	//删除redis缓存
-	err = delCache("commentList")
+	err = delCache(fmt.Sprintf("commentList%v", videoId))
 	if err != nil {
 		return
 	}
@@ -153,7 +154,7 @@ func deleteComment(c *gin.Context, videoId int) (err error) {
 	tx.Commit()
 	//延时双删
 	time.Sleep(time.Millisecond * 50)
-	err = delCache("commentList")
+	err = delCache(fmt.Sprintf("commentList%v", videoId))
 
 	c.JSON(http.StatusOK, CommentActionResponse{Response: Response{StatusCode: 0, StatusMsg: "删除评论成功"}})
 	return

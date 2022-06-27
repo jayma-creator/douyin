@@ -15,9 +15,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
-var videoIdSequence = int64(0)
+var videoIdSequence = int64(2)
 
 func PublishService(c *gin.Context) (err error) {
 	token := c.PostForm("token")
@@ -63,11 +64,24 @@ func PublishService(c *gin.Context) (err error) {
 			IsFavorite:    false,
 			Title:         title,
 		}
+
+		//删除redis缓存
+		err = delCache(fmt.Sprintf("publishList%v", user.Id))
+		if err != nil {
+			return err
+		}
 		err = dao.DB.Create(&video).Error
 		if err != nil {
 			logrus.Error("插入视频失败", err)
 			return err
 		}
+		//延时双删
+		time.Sleep(time.Millisecond * 50)
+		err = delCache(fmt.Sprintf("publishList%v", user.Id))
+		if err != nil {
+			return err
+		}
+
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 0,
 			StatusMsg:  finalName + " uploaded successfully",

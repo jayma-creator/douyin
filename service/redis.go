@@ -9,15 +9,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getCommentCache() (commentList []Comment, err error) {
+func getCommentCache(videoId string) (commentList []Comment, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
 	defer conn.Close()
 	//redis读取缓存
-	rebytes, err := redis.Bytes(conn.Do("get", "commentList"))
+	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("commentList%v", videoId)))
 	if err != nil {
-		logrus.Infof("读取commentList缓存失败,err:%v", err)
+		logrus.Infof("读取commentList%v缓存失败,err:%v", videoId, err)
 	}
 	//进行gob序列化
 	reader := bytes.NewReader(rebytes)
@@ -60,6 +60,41 @@ func getFavoriteListCache(userId string) (videoList []Video, err error) {
 	return
 }
 
+func getFollowListCache(userId string) (followList []User, err error) {
+	//从连接池当中获取链接
+	conn := dao.Pool.Get()
+	//先查看redis中是否有数据
+	defer conn.Close()
+	//redis读取缓存
+	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("followList%v", userId)))
+	if err != nil {
+		logrus.Infof("读取followList%v缓存失败,err:%v", userId, err)
+	}
+	//进行gob序列化
+	reader := bytes.NewReader(rebytes)
+	dec := gob.NewDecoder(reader)
+	err = dec.Decode(&followList)
+	return
+}
+
+func getFanListCache(userId string) (fanList []User, err error) {
+	//从连接池当中获取链接
+	conn := dao.Pool.Get()
+	//先查看redis中是否有数据
+	defer conn.Close()
+	//redis读取缓存
+	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("fanList%v", userId)))
+	if err != nil {
+		logrus.Infof("读取fanList%v缓存失败,err:%v", userId, err)
+	}
+	//进行gob序列化
+	reader := bytes.NewReader(rebytes)
+	dec := gob.NewDecoder(reader)
+	err = dec.Decode(&fanList)
+	return
+}
+
+//设置缓存
 func setRedisCache(key string, data interface{}) (err error) {
 	//缓存到redis
 	conn := dao.Pool.Get()
@@ -75,7 +110,7 @@ func setRedisCache(key string, data interface{}) (err error) {
 	}
 	//redis缓存数据
 	_, err = conn.Do("set", key, buffer.Bytes())
-	conn.Do("expire", key, 1*60*60)
+	conn.Do("expire", key, 1*60*60) //单位秒
 	if err != nil {
 		logrus.Infof("写入%s缓存失败,err:%v", key, err)
 	}
@@ -83,6 +118,7 @@ func setRedisCache(key string, data interface{}) (err error) {
 	return
 }
 
+//删除缓存
 func delCache(key string) (err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
