@@ -8,6 +8,7 @@ import (
 
 //发布视频
 func Publish(c *gin.Context) {
+
 	err := service.PublishService(c)
 	if err != nil {
 		logrus.Error(err)

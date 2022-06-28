@@ -63,7 +63,7 @@ func PublishService(c *gin.Context) (err error) {
 		}
 
 		//删除redis缓存
-		err = delCache(fmt.Sprintf("publishList%v", user.Id))
+		err = util.DelCache(fmt.Sprintf("publishList%v", user.Id))
 		if err != nil {
 			return err
 		}
@@ -74,7 +74,7 @@ func PublishService(c *gin.Context) (err error) {
 		}
 		//延时双删
 		time.Sleep(time.Millisecond * 50)
-		err = delCache(fmt.Sprintf("publishList%v", user.Id))
+		err = util.DelCache(fmt.Sprintf("publishList%v", user.Id))
 		if err != nil {
 			return err
 		}

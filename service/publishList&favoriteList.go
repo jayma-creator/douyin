@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
+	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 func FavoriteListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	//查询出当前登录的用户点赞过的视频列表
-	videoList, err := getFavoriteListCache(userId)
+	videoList, err := util.GetFavoriteListCache(userId)
 	if err != nil {
 		logrus.Info("查询点赞列表缓存失败", err)
 	}
@@ -27,10 +28,8 @@ func FavoriteListService(c *gin.Context) (err error) {
 			return
 		}
 		//缓存到redis
-		err = setRedisCache(fmt.Sprintf("favoriteList%v", userId), videoList)
-		if err != nil {
-			logrus.Error("缓存失败")
-		}
+		go util.SetRedisCache(fmt.Sprintf("favoriteList%v", userId), videoList)
+
 	}
 
 	c.JSON(http.StatusOK, VideoListResponse{
@@ -46,7 +45,7 @@ func FavoriteListService(c *gin.Context) (err error) {
 func PublishListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	//查询出当前用户发布过的视频列表
-	videoList, err := getPublishListCache(userId)
+	videoList, err := util.GetPublishListCache(userId)
 	if err != nil {
 		logrus.Info("查询发布列表缓存失败", err)
 	}
@@ -59,10 +58,8 @@ func PublishListService(c *gin.Context) (err error) {
 			return
 		}
 		fmt.Println("mysql")
-		err = setRedisCache(fmt.Sprintf("publishList%v", userId), videoList)
-		if err != nil {
-			logrus.Error("缓存失败")
-		}
+		go util.SetRedisCache(fmt.Sprintf("publishList%v", userId), videoList)
+
 		fmt.Println("缓存到redis")
 	}
 

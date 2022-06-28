@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
+	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -62,7 +63,7 @@ func CommentActionService(c *gin.Context) (err error) {
 //评论列表
 func CommentListService(c *gin.Context) (err error) {
 	videoId := c.Query("video_id")
-	commentList, err := getCommentCache(videoId)
+	commentList, err := util.GetCommentCache(videoId)
 	if err != nil {
 		logrus.Info("查询评论列表缓存失败", err)
 	}
@@ -73,10 +74,7 @@ func CommentListService(c *gin.Context) (err error) {
 			return
 		}
 		//缓存到redis
-		err = setRedisCache(fmt.Sprintf("commentList%v", videoId), commentList)
-		if err != nil {
-			logrus.Error("缓存失败")
-		}
+		go util.SetRedisCache(fmt.Sprintf("commentList%v", videoId), commentList)
 	}
 	c.JSON(http.StatusOK, CommentListResponse{
 		Response:    common.Response{StatusCode: 0},
@@ -114,7 +112,7 @@ func comment(c *gin.Context, user common.User, videoId int) (err error) {
 	}
 
 	//删除redis缓存
-	err = delCache(fmt.Sprintf("commentList%v", videoId))
+	err = util.DelCache(fmt.Sprintf("commentList%v", videoId))
 	if err != nil {
 		return
 	}
@@ -123,7 +121,7 @@ func comment(c *gin.Context, user common.User, videoId int) (err error) {
 
 	//延时双删
 	time.Sleep(time.Millisecond * 50)
-	err = delCache(fmt.Sprintf("commentList%v", videoId))
+	err = util.DelCache(fmt.Sprintf("commentList%v", videoId))
 
 	c.JSON(http.StatusOK, CommentActionResponse{
 		Response: common.Response{StatusCode: 0, StatusMsg: "评论成功"},
@@ -150,7 +148,7 @@ func deleteComment(c *gin.Context, videoId int) (err error) {
 		return
 	}
 	//删除redis缓存
-	err = delCache(fmt.Sprintf("commentList%v", videoId))
+	err = util.DelCache(fmt.Sprintf("commentList%v", videoId))
 	if err != nil {
 		return
 	}
@@ -158,7 +156,7 @@ func deleteComment(c *gin.Context, videoId int) (err error) {
 	tx.Commit()
 	//延时双删
 	time.Sleep(time.Millisecond * 50)
-	err = delCache(fmt.Sprintf("commentList%v", videoId))
+	err = util.DelCache(fmt.Sprintf("commentList%v", videoId))
 
 	c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 0, StatusMsg: "删除评论成功"}})
 	return

@@ -23,7 +23,7 @@ func GetToken(username string, password string) (tokenString string, err error) 
 		Username: username, // 自定义字段
 		Password: password,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 10 * time.Duration(1))), // 设置为永久，改用redis来控制时间
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 9999 * time.Duration(1))), // 设置为永久，改用redis来控制时间
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "ma", // 签发人
@@ -32,6 +32,8 @@ func GetToken(username string, password string) (tokenString string, err error) 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	// 使用指定的secret签名并获得完整的编码后的字符串token
 	tokenString, err = token.SignedString(MySecret)
+	//把token缓存到redis
+	RefreshToken(tokenString)
 	return
 }
 

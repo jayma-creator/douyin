@@ -1,4 +1,4 @@
-package service
+package util
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getCommentCache(videoId string) (commentList []common.Comment, err error) {
+func GetCommentCache(videoId string) (commentList []common.Comment, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -27,7 +27,7 @@ func getCommentCache(videoId string) (commentList []common.Comment, err error) {
 	return
 }
 
-func getPublishListCache(userId string) (videoList []common.Video, err error) {
+func GetPublishListCache(userId string) (videoList []common.Video, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -44,7 +44,7 @@ func getPublishListCache(userId string) (videoList []common.Video, err error) {
 	return
 }
 
-func getFavoriteListCache(userId string) (videoList []common.Video, err error) {
+func GetFavoriteListCache(userId string) (videoList []common.Video, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -61,7 +61,7 @@ func getFavoriteListCache(userId string) (videoList []common.Video, err error) {
 	return
 }
 
-func getFollowListCache(userId string) (followList []common.User, err error) {
+func GetFollowListCache(userId string) (followList []common.User, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -78,7 +78,7 @@ func getFollowListCache(userId string) (followList []common.User, err error) {
 	return
 }
 
-func getFanListCache(userId string) (fanList []common.User, err error) {
+func GetFanListCache(userId string) (fanList []common.User, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -95,8 +95,25 @@ func getFanListCache(userId string) (fanList []common.User, err error) {
 	return
 }
 
+func GetUserCache(username string) (user common.User, err error) {
+	//从连接池当中获取链接
+	conn := dao.Pool.Get()
+	//先查看redis中是否有数据
+	defer conn.Close()
+	//redis读取缓存
+	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("user%v", username)))
+	if err != nil {
+		logrus.Infof("读取user%v缓存失败,err:%v", username, err)
+	}
+	//进行gob序列化
+	reader := bytes.NewReader(rebytes)
+	dec := gob.NewDecoder(reader)
+	err = dec.Decode(&user)
+	return
+}
+
 //设置缓存
-func setRedisCache(key string, data interface{}) (err error) {
+func SetRedisCache(key string, data interface{}) (err error) {
 	//缓存到redis
 	conn := dao.Pool.Get()
 	defer conn.Close()
@@ -110,17 +127,16 @@ func setRedisCache(key string, data interface{}) (err error) {
 		return
 	}
 	//redis缓存数据
-	_, err = conn.Do("set", key, buffer.Bytes())
-	conn.Do("expire", key, 1*60*60) //单位秒
+	time := 10 * 60 * 60 //10小时
+	_, err = conn.Do("setex", key, time, buffer.Bytes())
 	if err != nil {
 		logrus.Infof("写入%s缓存失败,err:%v", key, err)
 	}
-
 	return
 }
 
 //删除缓存
-func delCache(key string) (err error) {
+func DelCache(key string) (err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
 	_, err = conn.Do("del", key)
@@ -130,6 +146,27 @@ func delCache(key string) (err error) {
 	return
 }
 
-func setToken() {
+func SetNull(key string) (err error) {
+	//缓存到redis
+	conn := dao.Pool.Get()
+	defer conn.Close()
 
+	//redis缓存数据
+	time := 5 * 60 //单位秒
+	_, err = conn.Do("setex", key, time, "")
+	if err != nil {
+		logrus.Infof("缓存空值到%s失败,err:%v", key, err)
+	}
+	return
+}
+
+func RefreshToken(token string) (err error) {
+	conn := dao.Pool.Get()
+	defer conn.Close()
+	time := 1 * 60 * 60 * 10 //单位秒
+	_, err = conn.Do("setex", token, time, 5)
+	if err != nil {
+		logrus.Error("刷新token失败", err)
+	}
+	return
 }

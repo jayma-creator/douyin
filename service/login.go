@@ -48,6 +48,5 @@ func LoginService(c *gin.Context) (err error) {
 			Token:    token,
 		})
 	}
-
 	return
 }

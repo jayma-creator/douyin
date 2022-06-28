@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
+	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -28,7 +29,7 @@ type UserResponse struct {
 func FollowListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	//查询出当前用户关注的列表
-	followList, err := getFollowListCache(userId)
+	followList, err := util.GetFollowListCache(userId)
 	if err != nil {
 		logrus.Info("查询点赞列表缓存失败", err)
 	}
@@ -42,10 +43,7 @@ func FollowListService(c *gin.Context) (err error) {
 			return
 		}
 		//缓存到redis
-		err = setRedisCache(fmt.Sprintf("followList%v", userId), followList)
-		if err != nil {
-			logrus.Error("缓存失败")
-		}
+		go util.SetRedisCache(fmt.Sprintf("followList%v", userId), followList)
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
@@ -60,7 +58,7 @@ func FollowListService(c *gin.Context) (err error) {
 //粉丝列表
 func FanListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
-	fansList, err := getFanListCache(userId)
+	fansList, err := util.GetFanListCache(userId)
 	if err != nil {
 		logrus.Info("查询点赞列表缓存失败", err)
 	}
@@ -74,10 +72,8 @@ func FanListService(c *gin.Context) (err error) {
 			return
 		}
 		//缓存到redis
-		err = setRedisCache(fmt.Sprintf("fansList%v", userId), fansList)
-		if err != nil {
-			logrus.Error("缓存失败")
-		}
+		go util.SetRedisCache(fmt.Sprintf("fansList%v", userId), fansList)
+
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{

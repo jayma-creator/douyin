@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/RaymondCode/simple-demo/util"
@@ -20,7 +21,33 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		user, exist, err := checkToken(token)
+		user, exist, err := CheckToken(token)
+		if err != nil {
+			logrus.Error("鉴权失败", err)
+			c.JSON(http.StatusOK, common.Response{
+				StatusCode: 1,
+				StatusMsg:  "token超时，请重新登陆",
+			})
+			c.Abort()
+		}
+		c.Set("user", user)
+		c.Set("exist", exist)
+		return
+	}
+}
+
+func PublishAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.PostForm("token")
+		if token == "" {
+			c.JSON(http.StatusOK, common.Response{
+				StatusCode: 1,
+				StatusMsg:  "请登录账号",
+			})
+			c.Abort()
+			return
+		}
+		user, exist, err := CheckToken(token)
 		if err != nil {
 			logrus.Error("鉴权失败", err)
 			c.JSON(http.StatusOK, common.Response{
@@ -42,7 +69,7 @@ func FeedAuthMiddleware() gin.HandlerFunc {
 		if token == "" {
 			return
 		}
-		user, exist, err := checkToken(token)
+		user, exist, err := CheckToken(token)
 		if err != nil {
 			logrus.Error("鉴权失败", err)
 			c.JSON(http.StatusOK, common.Response{
@@ -57,20 +84,32 @@ func FeedAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-func checkToken(token string) (common.User, bool, error) {
-	user := common.User{}
-	claims, err := util.ParseToken(token)
-	if err != nil {
-		logrus.Error(err)
-		return user, false, err
-	}
-	var count int64
-	err = dao.DB.Where("name = ? and password = ?", claims.Username, claims.Password).Find(&user).Count(&count).Error
-	if err != nil {
-		logrus.Error("token is invalid", err)
-		return user, false, err
-	}
-	if count == 0 {
+func CheckToken(token string) (user common.User, bool bool, err error) {
+	conn := dao.Pool.Get()
+	defer conn.Close()
+	claims, _ := util.ParseToken(token)
+	exist, _ := conn.Do("exists", token)
+	if exist.(int64) == 1 {
+		_, err = util.ParseToken(token)
+		if err != nil {
+			logrus.Error(err)
+			return user, false, err
+		}
+
+		user, err = util.GetUserCache(claims.Username)
+		if err != nil {
+			logrus.Info("查询用户信息缓存失败", err)
+		}
+
+		//说明redis没有缓存，改为从数据库读取,并缓存到redis
+		if user == (common.User{}) {
+			err = dao.DB.Where("token = ?", token).Find(&user).Error
+			//把user信息缓存到redis
+			go util.SetRedisCache(fmt.Sprintf("user%v", claims.Username), user)
+		}
+		//每次请求都会刷新token
+		util.RefreshToken(token)
+	} else {
 		logrus.Error("token已过期", err)
 		return user, false, err
 	}

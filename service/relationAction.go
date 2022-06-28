@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
+	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -81,16 +82,16 @@ func followAct(c *gin.Context, user common.User, toUserId int) (err error) {
 		return
 	}
 	//删除redis缓存
-	err = delCache(fmt.Sprintf("followList%v", user.Id))
-	err = delCache(fmt.Sprintf("fanList%v", user.Id))
+	err = util.DelCache(fmt.Sprintf("followList%v", user.Id))
+	err = util.DelCache(fmt.Sprintf("fanList%v", user.Id))
 	if err != nil {
 		return
 	}
 	tx.Commit()
 	//延时双删
 	time.Sleep(time.Millisecond * 50)
-	err = delCache(fmt.Sprintf("followList%v", user.Id))
-	err = delCache(fmt.Sprintf("fanList%v", user.Id))
+	err = util.DelCache(fmt.Sprintf("followList%v", user.Id))
+	err = util.DelCache(fmt.Sprintf("fanList%v", user.Id))
 	c.JSON(http.StatusOK, common.Response{StatusCode: 0, StatusMsg: "关注成功"})
 	return
 }
@@ -116,16 +117,16 @@ func unFollow(c *gin.Context, user common.User, toUserId int) (err error) {
 		tx.Rollback()
 		return
 	}
-	err = delCache(fmt.Sprintf("followList%v", user.Id))
-	err = delCache(fmt.Sprintf("fanList%v", user.Id))
+	err = util.DelCache(fmt.Sprintf("followList%v", user.Id))
+	err = util.DelCache(fmt.Sprintf("fanList%v", user.Id))
 	if err != nil {
 		return
 	}
 	tx.Commit()
 	//延时双删
 	time.Sleep(time.Millisecond * 50)
-	err = delCache(fmt.Sprintf("followList%v", user.Id))
-	err = delCache(fmt.Sprintf("fanList%v", user.Id))
+	err = util.DelCache(fmt.Sprintf("followList%v", user.Id))
+	err = util.DelCache(fmt.Sprintf("fanList%v", user.Id))
 	c.JSON(http.StatusOK, common.Response{StatusCode: 0, StatusMsg: "取关成功"})
 	return
 }
