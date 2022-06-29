@@ -126,7 +126,7 @@ func SetRedisCache(key string, data interface{}) (err error) {
 		logrus.Error(err)
 		return
 	}
-	//加上随机数，防止同时过期造成缓存雪崩
+	//随机数，防止同时过期造成缓存雪崩
 	randNum := rangeRand(30*60, 60*60)
 	time := 10*60*60 + randNum //10小时
 	//redis缓存数据
