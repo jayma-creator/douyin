@@ -36,6 +36,7 @@ func FollowListService(c *gin.Context) (err error) {
 	}
 	//缓存不存在，从数据库查询
 	if util.IsExistCache(key) == 0 {
+		var count int64
 		err = dao.DB.Table("users").
 			Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).Count(&count).
 			Find(&followList).Error
@@ -72,6 +73,7 @@ func FanListService(c *gin.Context) (err error) {
 		logrus.Info("查询点赞列表缓存失败", err)
 	}
 	if util.IsExistCache(key) == 0 {
+		var count int64
 		//缓存不存在，从数据库查询
 		err = dao.DB.Table("users").
 			Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).

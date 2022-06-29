@@ -18,8 +18,6 @@ const (
 	delComment    = "2"
 )
 
-var count int64
-
 type CommentListResponse struct {
 	common.Response
 	CommentList []common.Comment `json:"comment_list,omitempty"`
@@ -73,6 +71,7 @@ func CommentListService(c *gin.Context) (err error) {
 	}
 	//说明redis没有缓存，改为从数据库读取,并缓存到redis
 	if util.IsExistCache(key) == 0 {
+		var count int64
 		err = dao.DB.Where("video_id = ?", videoId).Preload("User").Preload("Video").Preload("Video.Author").Order("created_at desc").Find(&commentList).Count(&count).Error
 		if err != nil {
 			return
