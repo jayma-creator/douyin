@@ -152,7 +152,7 @@ func SetNull(key string) (err error) {
 	defer conn.Close()
 
 	//redis缓存数据
-	time := 5 * 60 //单位秒
+	time := 10 //单位秒
 	_, err = conn.Do("setex", key, time, "")
 	if err != nil {
 		logrus.Infof("缓存空值到%s失败,err:%v", key, err)
@@ -169,4 +169,15 @@ func RefreshToken(token string) (err error) {
 		logrus.Error("刷新token失败", err)
 	}
 	return
+}
+
+func IsExistCache(key string) (exists int64) {
+	conn := dao.Pool.Get()
+	defer conn.Close()
+	exist, err := conn.Do("exists", key)
+	if err != nil {
+		logrus.Error("查询缓存是否存在失败", err)
+	}
+	exists = exist.(int64)
+	return exists
 }

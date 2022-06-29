@@ -28,22 +28,29 @@ type UserResponse struct {
 //关注列表
 func FollowListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
-	//查询出当前用户关注的列表
+	key := fmt.Sprintf("followList%v", userId)
+	//先查询缓存
 	followList, err := util.GetFollowListCache(userId)
 	if err != nil {
 		logrus.Info("查询点赞列表缓存失败", err)
 	}
-	//没有缓存，从数据库取，并缓存到redis
-	if len(followList) == 0 {
+	//缓存不存在，从数据库查询
+	if util.IsExistCache(key) == 0 {
 		err = dao.DB.Table("users").
-			Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).
+			Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).Count(&count).
 			Find(&followList).Error
 		if err != nil {
 			logrus.Error("获取关注列表失败", err)
 			return
 		}
-		//缓存到redis
-		go util.SetRedisCache(fmt.Sprintf("followList%v", userId), followList)
+		//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
+		if count == 0 {
+			go util.SetNull(key)
+		} else {
+			//缓存到redis
+			go util.SetRedisCache(key, followList)
+		}
+
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
@@ -58,12 +65,14 @@ func FollowListService(c *gin.Context) (err error) {
 //粉丝列表
 func FanListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
+	key := fmt.Sprintf("fansList%v", userId)
+	//先查询缓存
 	fansList, err := util.GetFanListCache(userId)
 	if err != nil {
 		logrus.Info("查询点赞列表缓存失败", err)
 	}
-	if len(fansList) == 0 {
-		//查询出当前用户的粉丝列表
+	if util.IsExistCache(key) == 0 {
+		//缓存不存在，从数据库查询
 		err = dao.DB.Table("users").
 			Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
 			Find(&fansList).Error
@@ -71,8 +80,13 @@ func FanListService(c *gin.Context) (err error) {
 			logrus.Error("获取粉丝列表失败", err)
 			return
 		}
-		//缓存到redis
-		go util.SetRedisCache(fmt.Sprintf("fansList%v", userId), fansList)
+		//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
+		if count == 0 {
+			go util.SetNull(key)
+		} else {
+			//缓存到redis
+			go util.SetRedisCache(key, fansList)
+		}
 
 	}
 

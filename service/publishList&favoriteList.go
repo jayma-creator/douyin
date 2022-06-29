@@ -13,13 +13,14 @@ import (
 //点赞列表
 func FavoriteListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
-	//查询出当前登录的用户点赞过的视频列表
+	key := fmt.Sprintf("favoriteList%v", userId)
+	//先查询缓存
 	videoList, err := util.GetFavoriteListCache(userId)
 	if err != nil {
 		logrus.Info("查询点赞列表缓存失败", err)
 	}
 	//没有缓存，从数据库取，并缓存到redis
-	if len(videoList) == 0 {
+	if util.IsExistCache(key) == 0 {
 		err = dao.DB.Table("videos").
 			Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", userId).Preload("Author").
 			Find(&videoList).Error
@@ -27,8 +28,13 @@ func FavoriteListService(c *gin.Context) (err error) {
 			logrus.Error("获取点赞列表失败", err)
 			return
 		}
-		//缓存到redis
-		go util.SetRedisCache(fmt.Sprintf("favoriteList%v", userId), videoList)
+		//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
+		if count == 0 {
+			go util.SetNull(key)
+		} else {
+			//缓存到redis
+			go util.SetRedisCache(key, videoList)
+		}
 
 	}
 
@@ -44,23 +50,26 @@ func FavoriteListService(c *gin.Context) (err error) {
 //发布列表
 func PublishListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
-	//查询出当前用户发布过的视频列表
+	key := fmt.Sprintf("publishList%v", userId)
+	//先查询缓存
 	videoList, err := util.GetPublishListCache(userId)
 	if err != nil {
 		logrus.Info("查询发布列表缓存失败", err)
 	}
-	fmt.Println("从redis读取缓存")
 	//没有缓存，从数据库取，并缓存到redis
-	if len(videoList) == 0 {
+	if util.IsExistCache(key) == 0 {
 		err = dao.DB.Where("author_id = ?", userId).Preload("Author").Find(&videoList).Error
 		if err != nil {
 			logrus.Error("获取发布列表失败", err)
 			return
 		}
-		fmt.Println("mysql")
-		go util.SetRedisCache(fmt.Sprintf("publishList%v", userId), videoList)
-
-		fmt.Println("缓存到redis")
+		//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
+		if count == 0 {
+			go util.SetNull(key)
+		} else {
+			//缓存到redis
+			go util.SetRedisCache(key, videoList)
+		}
 	}
 
 	c.JSON(http.StatusOK, VideoListResponse{
