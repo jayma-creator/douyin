@@ -126,8 +126,10 @@ func SetRedisCache(key string, data interface{}) (err error) {
 		logrus.Error(err)
 		return
 	}
+	//加上随机数，防止同时过期造成缓存雪崩
+	randNum := rangeRand(30*60, 60*60)
+	time := 10*60*60 + randNum //10小时
 	//redis缓存数据
-	time := 10 * 60 * 60 //10小时
 	_, err = conn.Do("setex", key, time, buffer.Bytes())
 	if err != nil {
 		logrus.Infof("写入%s缓存失败,err:%v", key, err)
