@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"time"
 )
 
 type UserListResponse struct {
@@ -29,20 +30,24 @@ type UserResponse struct {
 func FollowListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	key := fmt.Sprintf("followList%v", userId)
+	var followList []common.User
 	//先查询缓存
-	followList, err := util.GetFollowListCache(userId)
-	if err != nil {
-		logrus.Info("查询点赞列表缓存失败", err)
-	}
-	//缓存不存在，从数据库查询
-	if util.IsExistCache(key) == 0 {
-		var count int64
-		err = dao.DB.Table("users").
-			Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).Count(&count).
-			Find(&followList).Error
+	if util.IsExistCache(key) == 1 {
+		followList, err = util.GetFollowListCache(userId)
 		if err != nil {
-			logrus.Error("获取关注列表失败", err)
-			return
+			logrus.Info("查询点赞列表缓存失败", err)
+		}
+	} else if util.IsExistCache(key) == 0 { //缓存不存在，从数据库查询
+		var count int64
+		lockNum := "1"
+		if util.RedisLock(lockNum) == true {
+			err = dao.DB.Table("users").
+				Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).
+				Find(&followList).Count(&count).Error
+			if err != nil {
+				logrus.Error("获取关注列表失败", err)
+				return
+			}
 		}
 		//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
 		if count == 0 {
@@ -51,7 +56,13 @@ func FollowListService(c *gin.Context) (err error) {
 			//缓存到redis
 			go util.SetRedisCache(key, followList)
 		}
-
+		util.RedisUnlock(lockNum)
+	} else {
+		time.Sleep(time.Millisecond * 100)
+		followList, err = util.GetFollowListCache(userId)
+		if err != nil {
+			logrus.Info("查询点赞列表缓存失败", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{
@@ -67,29 +78,40 @@ func FollowListService(c *gin.Context) (err error) {
 func FanListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	key := fmt.Sprintf("fansList%v", userId)
+	var fansList []common.User
 	//先查询缓存
-	fansList, err := util.GetFanListCache(userId)
-	if err != nil {
-		logrus.Info("查询点赞列表缓存失败", err)
-	}
-	if util.IsExistCache(key) == 0 {
-		var count int64
-		//缓存不存在，从数据库查询
-		err = dao.DB.Table("users").
-			Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
-			Find(&fansList).Error
+	if util.IsExistCache(key) == 1 {
+		fansList, err = util.GetFanListCache(userId)
 		if err != nil {
-			logrus.Error("获取粉丝列表失败", err)
-			return
+			logrus.Info("查询点赞列表缓存失败", err)
 		}
-		//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
-		if count == 0 {
-			go util.SetNull(key)
+	} else if util.IsExistCache(key) == 0 {
+		var count int64
+		lockNum := "1"
+		if util.RedisLock(lockNum) == true {
+			//缓存不存在，从数据库查询
+			err = dao.DB.Table("users").
+				Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
+				Find(&fansList).Count(&count).Error
+			if err != nil {
+				logrus.Error("获取粉丝列表失败", err)
+				return
+			}
+			//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
+			if count == 0 {
+				go util.SetNull(key)
+			} else {
+				//缓存到redis
+				go util.SetRedisCache(key, fansList)
+			}
+			util.RedisUnlock(lockNum)
 		} else {
-			//缓存到redis
-			go util.SetRedisCache(key, fansList)
+			time.Sleep(time.Millisecond * 100)
+			fansList, err = util.GetFanListCache(userId)
+			if err != nil {
+				logrus.Info("查询点赞列表缓存失败", err)
+			}
 		}
-
 	}
 
 	c.JSON(http.StatusOK, UserListResponse{

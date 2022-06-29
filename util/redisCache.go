@@ -183,3 +183,29 @@ func IsExistCache(key string) (exists int64) {
 	exists = exist.(int64)
 	return exists
 }
+
+func RedisLock(key string) (isLock bool) {
+	con := dao.Pool.Get()
+	defer con.Close()
+	redisLockTimeout := 10
+	//这里需要redis.String包一下，才能返回redis.ErrNil
+	_, err := redis.String(con.Do("set", key, 1, "ex", redisLockTimeout, "nx"))
+	if err != nil {
+		if err == redis.ErrNil {
+			err = nil
+			return
+		}
+		return
+	}
+	return true
+}
+
+func RedisUnlock(key string) (err error) {
+	con := dao.Pool.Get()
+	defer con.Close()
+	_, err = con.Do("del", key)
+	if err != nil {
+		return
+	}
+	return
+}

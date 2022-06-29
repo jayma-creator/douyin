@@ -64,26 +64,36 @@ func CommentActionService(c *gin.Context) (err error) {
 func CommentListService(c *gin.Context) (err error) {
 	videoId := c.Query("video_id")
 	key := fmt.Sprintf("commentList%v", videoId)
+	var commentList []common.Comment
 	//先查询缓存
-	commentList, err := util.GetCommentCache(videoId)
-	if err != nil {
-		logrus.Info("查询评论列表缓存失败", err)
-	}
-	//说明redis没有缓存，改为从数据库读取,并缓存到redis
-	if util.IsExistCache(key) == 0 {
-		var count int64
-		err = dao.DB.Where("video_id = ?", videoId).Preload("User").Preload("Video").Preload("Video.Author").Order("created_at desc").Find(&commentList).Count(&count).Error
+	if util.IsExistCache(key) == 1 {
+		commentList, err = util.GetCommentCache(videoId)
 		if err != nil {
-			return
+			logrus.Info("查询评论列表缓存失败", err)
 		}
-		//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
-		if count == 0 {
-			go util.SetNull(key)
+	} else if util.IsExistCache(key) == 0 {
+		var count int64
+		lockNum := "1"
+		if util.RedisLock(lockNum) == true {
+			err = dao.DB.Where("video_id = ?", videoId).Preload("User").Preload("Video").Preload("Video.Author").Order("created_at desc").Find(&commentList).Count(&count).Error
+			if err != nil {
+				return
+			}
+			if count == 0 {
+				//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
+				go util.SetNull(key)
+			} else {
+				//缓存到redis
+				go util.SetRedisCache(key, commentList)
+			}
+			util.RedisUnlock(lockNum)
 		} else {
-			//缓存到redis
-			go util.SetRedisCache(key, commentList)
+			time.Sleep(time.Millisecond * 100)
+			commentList, err = util.GetCommentCache(videoId)
+			if err != nil {
+				logrus.Info("查询评论列表缓存失败", err)
+			}
 		}
-
 	}
 	c.JSON(http.StatusOK, CommentListResponse{
 		Response:    common.Response{StatusCode: 0},

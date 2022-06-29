@@ -26,7 +26,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			logrus.Error("鉴权失败", err)
 			c.JSON(http.StatusOK, common.Response{
 				StatusCode: 1,
-				StatusMsg:  "token超时，请重新登陆",
+				StatusMsg:  "token已过期，请重新登陆",
 			})
 			c.Abort()
 		}
@@ -52,7 +52,7 @@ func PublishAuthMiddleware() gin.HandlerFunc {
 			logrus.Error("鉴权失败", err)
 			c.JSON(http.StatusOK, common.Response{
 				StatusCode: 1,
-				StatusMsg:  "token超时，请重新登陆",
+				StatusMsg:  "token已过期，请重新登陆",
 			})
 			c.Abort()
 		}
@@ -74,7 +74,7 @@ func FeedAuthMiddleware() gin.HandlerFunc {
 			logrus.Error("鉴权失败", err)
 			c.JSON(http.StatusOK, common.Response{
 				StatusCode: 1,
-				StatusMsg:  "token超时，请重新登陆",
+				StatusMsg:  "token已过期，请重新登陆",
 			})
 			c.Abort()
 		}
@@ -87,7 +87,11 @@ func FeedAuthMiddleware() gin.HandlerFunc {
 func CheckToken(token string) (user common.User, bool bool, err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
-	claims, _ := util.ParseToken(token)
+	claims, err := util.ParseToken(token)
+	if err != nil {
+		logrus.Error("token已过期", err)
+		return user, false, err
+	}
 	exist, _ := conn.Do("exists", token)
 	if exist.(int64) == 1 {
 		_, err = util.ParseToken(token)
