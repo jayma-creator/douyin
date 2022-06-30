@@ -137,6 +137,18 @@ func SetRedisCache(key string, data interface{}) (err error) {
 	return
 }
 
+func SetRedisNum(key, value string) {
+	conn := dao.Pool.Get()
+	defer conn.Close()
+	randNum := rangeRand(30*60, 60*60)
+	time := 10*60*60 + randNum //10小时
+	_, err := conn.Do("setex", key, time, value)
+	if err != nil {
+		logrus.Error("设置缓存失败", err)
+	}
+
+}
+
 //删除缓存
 func DelCache(key string) (err error) {
 	conn := dao.Pool.Get()
