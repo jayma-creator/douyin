@@ -16,11 +16,12 @@ type FeedResponse struct {
 }
 
 func FeedService(c *gin.Context) (err error) {
-	token := c.Query("token")
 	videoList := []common.Video{}
+	u, _ := c.Get("user")
+	e, _ := c.Get("exist")
 	//把数据库里所有视频放在videoList内,且按照创建时间降序排列
 	//无用户登录
-	if token == "" {
+	if u == nil && e == nil {
 		tx := dao.DB.Begin()
 		//每次获取先把点赞图标和用户关注改为false
 		err = tx.Model(common.Video{}).Where("is_favorite = ?", true).Update("is_favorite", false).Error
@@ -37,8 +38,6 @@ func FeedService(c *gin.Context) (err error) {
 		}
 		tx.Commit()
 	} else {
-		u, _ := c.Get("user")
-		e, _ := c.Get("exist")
 		user := u.(common.User)
 		exist := e.(bool)
 		if exist {

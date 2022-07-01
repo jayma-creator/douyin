@@ -38,7 +38,6 @@ func RegisterService(c *gin.Context) (err error) {
 			Id:       userIdSequence,
 			Name:     username,
 			Password: password,
-			Token:    token,
 		}
 		//插入数据
 		err = dao.DB.Create(&newUser).Error

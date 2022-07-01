@@ -72,11 +72,8 @@ func FeedAuthMiddleware() gin.HandlerFunc {
 		user, exist, err := CheckToken(token)
 		if err != nil {
 			logrus.Error("鉴权失败", err)
-			c.JSON(http.StatusOK, common.Response{
-				StatusCode: 1,
-				StatusMsg:  "token已过期，请重新登陆",
-			})
-			c.Abort()
+			c.Next()
+			return
 		}
 		c.Set("user", user)
 		c.Set("exist", exist)
@@ -88,18 +85,8 @@ func CheckToken(token string) (user common.User, bool bool, err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
 	claims, err := util.ParseToken(token)
-	if err != nil {
-		logrus.Error("token已过期", err)
-		return user, false, err
-	}
 	exist, _ := conn.Do("exists", token)
 	if exist.(int64) == 1 {
-		_, err = util.ParseToken(token)
-		if err != nil {
-			logrus.Error(err)
-			return user, false, err
-		}
-
 		user, err = util.GetUserCache(claims.Username)
 		if err != nil {
 			logrus.Info("查询用户信息缓存失败", err)
@@ -107,14 +94,14 @@ func CheckToken(token string) (user common.User, bool bool, err error) {
 
 		//说明redis没有缓存，改为从数据库读取,并缓存到redis
 		if user == (common.User{}) {
-			err = dao.DB.Where("token = ?", token).Find(&user).Error
+			err = dao.DB.Where("name = ?", claims.Username).Find(&user).Error
 			//把user信息缓存到redis
 			go util.SetRedisCache(fmt.Sprintf("user%v", claims.Username), user)
 		}
 		//每次请求都会刷新token
 		util.RefreshToken(token)
 	} else {
-		logrus.Error("token已过期", err)
+		logrus.Info("jwt设定的token已过期", err)
 		return user, false, err
 	}
 	return user, true, err

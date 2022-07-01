@@ -177,7 +177,7 @@ func SetNull(key string) (err error) {
 func RefreshToken(token string) (err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
-	time := 1 * 60 * 60 * 10 //单位秒
+	time := 1 //单位秒
 	_, err = conn.Do("setex", token, time, 5)
 	if err != nil {
 		logrus.Error("刷新token失败", err)
@@ -207,6 +207,7 @@ func RedisLock(key string) (isLock bool) {
 			err = nil
 			return
 		}
+		logrus.Error("加锁失败", err)
 		return
 	}
 	return true
@@ -217,6 +218,7 @@ func RedisUnlock(key string) (err error) {
 	defer con.Close()
 	_, err = con.Do("del", key)
 	if err != nil {
+		logrus.Error("解锁失败", err)
 		return
 	}
 	return
