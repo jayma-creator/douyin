@@ -32,7 +32,7 @@ func InitRouter(r *gin.Engine) {
 
 		// extra apis - II
 		apiRouter.POST("/relation/action/", middleware.AuthMiddleware(), controller.RelationAction)
-		apiRouter.GET("/relation/follow/list/", middleware.AuthMiddleware(), controller.FollowList)
-		apiRouter.GET("/relation/follower/list/", middleware.AuthMiddleware(), controller.FollowerList)
+		apiRouter.GET("/relation/follow/list/", controller.FollowList)
+		apiRouter.GET("/relation/follower/list/", controller.FollowerList)
 	}
 }

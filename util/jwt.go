@@ -23,7 +23,7 @@ func GetToken(username string, password string) (tokenString string, err error) 
 		Username: username, // 自定义字段
 		Password: password,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 1 * time.Duration(1))), // 设置为永久，改用redis来控制时间
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 10 * time.Duration(1))), // 设置为永久，改用redis来控制时间
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "ma", // 签发人

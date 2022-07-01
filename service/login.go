@@ -37,11 +37,6 @@ func LoginService(c *gin.Context) (err error) {
 		})
 		return
 	} else if count == 1 && password == user.Password {
-		//err = dao.DB.Model(&user).Where("id = ?", user.Id).Update("token", token).Error
-		//if err != nil {
-		//	logrus.Error("更新token失败", err)
-		//	return
-		//}
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: common.Response{StatusCode: 0},
 			UserId:   user.Id,

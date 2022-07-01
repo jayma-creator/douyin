@@ -21,59 +21,53 @@ const (
 func RelationActionService(c *gin.Context) (err error) {
 	u, _ := c.Get("user")
 	e, _ := c.Get("exist")
-	user := u.(common.User)
-	exist := e.(bool)
-	if exist {
-		actionType := c.Query("action_type")
-		toUserIdStr := c.Query("to_user_id")
-		toUserId, _ := strconv.Atoi(toUserIdStr)
-		//关注操作
-		if actionType == follow {
-			var count int64
-			key := strconv.Itoa(int(user.Id)+(toUserId)) + "follow"
-			value := key
-			//先查询缓存对应的ID有没有关注对方
-			exist := util.IsExistCache(key)
-			//如果有，则直接返回已经关注
-			if exist == 1 {
-				c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经关注对方，请刷新视频查看"})
-				return
-			} else { //如果缓存没有，则查询数据库
-				err = dao.DB.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Find(&common.FollowFansRelation{}).Count(&count).Error
+	if u != nil && e != nil {
+		user := u.(common.User)
+		exist := e.(bool)
+		if exist {
+			actionType := c.Query("action_type")
+			toUserIdStr := c.Query("to_user_id")
+			toUserId, _ := strconv.Atoi(toUserIdStr)
+			//关注操作
+			if actionType == follow {
+				var count int64
+				key := strconv.Itoa(int(user.Id)) + strconv.Itoa((toUserId)) + "follow"
+				//先查询缓存对应的ID有没有关注对方
+				exist := util.IsExistCache(key)
+				//如果有，则直接返回已经关注
+				if exist == 1 {
+					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经关注对方，请刷新视频查看"})
+					return
+				} else { //如果缓存没有，则查询数据库
+					err = dao.DB.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Find(&common.FollowFansRelation{}).Count(&count).Error
+					if err != nil {
+						logrus.Error("查询关注信息失败", err)
+						return
+					}
+				}
+				//如果数据库没有，则执行关注操作，并把关注信息缓存到redis
+				if count == 0 {
+					err = followAct(c, user, toUserId, key)
+					if err != nil {
+						return
+					}
+				} else {
+					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经关注对方，请刷新视频查看"})
+					return
+				}
+			} else if actionType == unfollow {
+				err = unFollow(c, user, toUserId)
 				if err != nil {
-					logrus.Error("查询关注信息失败", err)
 					return
 				}
 			}
-			//如果数据库没有，则执行关注操作，并把关注信息缓存到redis
-			if count == 0 {
-				err = followAct(c, user, toUserId)
-				if err != nil {
-					return
-				}
-			} else {
-				c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经关注对方，请刷新视频查看"})
-				return
-			}
-			go util.SetRedisNum(key, value)
-		} else if actionType == unfollow {
-			err = unFollow(c, user, toUserId)
-			if err != nil {
-				return
-			}
-		} else {
-			c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 1, StatusMsg: "错误操作"}})
-			return
 		}
-	} else {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
-		return
 	}
 	return
 }
 
 //关注操作
-func followAct(c *gin.Context, user common.User, toUserId int) (err error) {
+func followAct(c *gin.Context, user common.User, toUserId int, key string) (err error) {
 	tx := dao.DB.Begin()
 	//如果当前用户点击关注自己，返回错误提示
 	if user.Id == int64(toUserId) {
@@ -117,6 +111,7 @@ func followAct(c *gin.Context, user common.User, toUserId int) (err error) {
 	err = util.DelCache(fmt.Sprintf("followList%v", user.Id))
 	err = util.DelCache(fmt.Sprintf("fanList%v", user.Id))
 	c.JSON(http.StatusOK, common.Response{StatusCode: 0, StatusMsg: "关注成功"})
+	go util.SetRedisNum(key, key)
 	return
 }
 

@@ -30,49 +30,44 @@ func FavoriteActionService(c *gin.Context) (err error) {
 	videoId, _ := strconv.Atoi(videoIdStr)
 	u, _ := c.Get("user")
 	e, _ := c.Get("exist")
-	user := u.(common.User)
-	exist := e.(bool)
-	if exist {
-		if actionType == like {
-			var count int64
-			key := strconv.Itoa(int(user.Id)+(videoId)) + "favorite"
-			value := key
-			//先查询缓存对应的ID有没有点赞该视频
-			exist := util.IsExistCache(key)
-			//如果有，则直接返回已经关注
-			if exist == 1 {
-				c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经点赞该视频，请刷新视频查看"})
-				return
-			} else { //如果缓存没有，则查询数据库
-				err = dao.DB.Where("user_id = ? and video_id = ?", user.Id, videoId).Find(&common.UserFavoriteRelation{}).Count(&count).Error
+	if u != nil && e != nil {
+		user := u.(common.User)
+		exist := e.(bool)
+		if exist {
+			if actionType == like {
+				var count int64
+				key := strconv.Itoa(int(user.Id)) + strconv.Itoa(int(videoId)) + "favorite"
+				//先查询缓存对应的ID有没有点赞该视频
+				exist := util.IsExistCache(key)
+				//如果有，则直接返回已经关注
+				if exist == 1 {
+					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经点赞该视频，请刷新视频查看"})
+					return
+				} else { //如果缓存没有，则查询数据库
+					err = dao.DB.Where("user_id = ? and video_id = ?", user.Id, videoId).Find(&common.UserFavoriteRelation{}).Count(&count).Error
+					if err != nil {
+						logrus.Error("查询点赞信息失败", err)
+						return
+					}
+				}
+				//如果数据库没有，则执行关注操作，并把关注信息缓存到redis
+				if count == 0 {
+					err = likeAct(c, user, videoId)
+					if err != nil {
+						return
+					}
+				} else {
+					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经点赞该视频，请刷新视频查看"})
+					return
+				}
+				go util.SetRedisNum(key, key)
+			} else if actionType == unLike {
+				err = unlikeAct(c, user, videoId)
 				if err != nil {
-					logrus.Error("查询点赞信息失败", err)
 					return
 				}
 			}
-			//如果数据库没有，则执行关注操作，并把关注信息缓存到redis
-			if count == 0 {
-				err = likeAct(c, user, videoId)
-				if err != nil {
-					return
-				}
-			} else {
-				c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经点赞该视频，请刷新视频查看"})
-				return
-			}
-			go util.SetRedisNum(key, value)
-		} else if actionType == unLike {
-			err = unlikeAct(c, user, videoId)
-			if err != nil {
-				return
-			}
-		} else {
-			c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 1, StatusMsg: "错误操作"}})
-			return
 		}
-	} else {
-		c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"})
-		return
 	}
 	return
 }

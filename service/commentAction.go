@@ -32,30 +32,25 @@ type CommentActionResponse struct {
 func CommentActionService(c *gin.Context) (err error) {
 	u, _ := c.Get("user")
 	e, _ := c.Get("exist")
-	user := u.(common.User)
-	exist := e.(bool)
-
-	if exist {
-		actionType := c.Query("action_type")
-		videoIdStr := c.Query("video_id")
-		videoId, _ := strconv.Atoi(videoIdStr)
-		if actionType == createComment {
-			err = comment(c, user, videoId)
-			if err != nil {
-				return
+	if u != nil && e != nil {
+		user := u.(common.User)
+		exist := e.(bool)
+		if exist {
+			actionType := c.Query("action_type")
+			videoIdStr := c.Query("video_id")
+			videoId, _ := strconv.Atoi(videoIdStr)
+			if actionType == createComment {
+				err = comment(c, user, videoId)
+				if err != nil {
+					return
+				}
+			} else if actionType == delComment {
+				err = deleteComment(c, videoId)
+				if err != nil {
+					return
+				}
 			}
-		} else if actionType == delComment {
-			err = deleteComment(c, videoId)
-			if err != nil {
-				return
-			}
-		} else {
-			c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 1, StatusMsg: "错误操作"}})
-			return
 		}
-	} else {
-		c.JSON(http.StatusOK, CommentActionResponse{Response: common.Response{StatusCode: 1, StatusMsg: "token已过期，请重新登录"}})
-		return
 	}
 	return
 }

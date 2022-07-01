@@ -101,7 +101,7 @@ func GetUserCache(username string) (user common.User, err error) {
 	//先查看redis中是否有数据
 	defer conn.Close()
 	//redis读取缓存
-	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("user%v", username)))
+	rebytes, err := redis.Bytes(conn.Do("get", username))
 	if err != nil {
 		logrus.Infof("读取user%v缓存失败,err:%v", username, err)
 	}
@@ -177,7 +177,7 @@ func SetNull(key string) (err error) {
 func RefreshToken(token string) (err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
-	time := 1 //单位秒
+	time := 1 * 60 * 60 * 10 //单位秒
 	_, err = conn.Do("setex", token, time, 5)
 	if err != nil {
 		logrus.Error("刷新token失败", err)
