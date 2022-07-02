@@ -28,7 +28,7 @@ func RelationActionService(c *gin.Context) (err error) {
 			actionType := c.Query("action_type")
 			toUserIdStr := c.Query("to_user_id")
 			toUserId, _ := strconv.Atoi(toUserIdStr)
-			key := strconv.Itoa(int(user.Id)) + strconv.Itoa((toUserId)) + "follow"
+			key := strconv.Itoa(int(user.Id)) + strconv.Itoa(toUserId) + "follow"
 			//关注操作
 			if actionType == follow {
 				var count int64

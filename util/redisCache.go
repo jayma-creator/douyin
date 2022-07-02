@@ -101,7 +101,7 @@ func GetFanListCache(userId string) (fanList []common.User, err error) {
 	//先查看redis中是否有数据
 	defer conn.Close()
 	//redis读取缓存
-	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("fanList%v", userId)))
+	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("fansList%v", userId)))
 	if err != nil {
 		logrus.Infof("读取fanList%v缓存失败,err:%v", userId, err)
 	}

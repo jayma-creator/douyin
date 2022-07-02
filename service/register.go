@@ -52,5 +52,6 @@ func RegisterService(c *gin.Context) (err error) {
 			Token:    token,
 		})
 	}
+	util.DelCache("feed")
 	return
 }
