@@ -33,6 +33,7 @@ func FavoriteListService(c *gin.Context) (err error) {
 				return
 			}
 			if count == 0 {
+				//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
 				go util.SetNull(key)
 			} else {
 				//缓存到redis
@@ -46,9 +47,6 @@ func FavoriteListService(c *gin.Context) (err error) {
 				logrus.Info("查询点赞列表缓存失败", err)
 			}
 		}
-
-		//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
-
 	}
 
 	c.JSON(http.StatusOK, VideoListResponse{

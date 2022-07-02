@@ -95,6 +95,7 @@ func likeAct(c *gin.Context, user common.User, videoId int) (err error) {
 	}
 
 	//删除redis缓存
+	err = util.DelCache("feed")
 	err = util.DelCache(fmt.Sprintf("favoriteList%v", user.Id))
 	if err != nil {
 		return
@@ -102,6 +103,7 @@ func likeAct(c *gin.Context, user common.User, videoId int) (err error) {
 	tx.Commit()
 	//延时双删
 	time.Sleep(time.Millisecond * 50)
+	err = util.DelCache("feed")
 	err = util.DelCache(fmt.Sprintf("favoriteList%v", user.Id))
 	if err != nil {
 		return
@@ -129,6 +131,7 @@ func unlikeAct(c *gin.Context, user common.User, videoId int) (err error) {
 		return
 	}
 	//删除redis缓存
+	err = util.DelCache("feed")
 	err = util.DelCache(fmt.Sprintf("favoriteList%v", user.Id))
 	if err != nil {
 		return
@@ -136,6 +139,7 @@ func unlikeAct(c *gin.Context, user common.User, videoId int) (err error) {
 	tx.Commit()
 	//延时双删
 	time.Sleep(time.Millisecond * 50)
+	err = util.DelCache("feed")
 	err = util.DelCache(fmt.Sprintf("favoriteList%v", user.Id))
 	if err != nil {
 		return

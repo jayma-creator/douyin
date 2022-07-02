@@ -85,11 +85,13 @@ func FeedAuthMiddleware() gin.HandlerFunc {
 func CheckToken(token string) (user common.User, bool bool, err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
+	defer func() {
+		recover()
+	}()
 	claims, err := util.ParseToken(token)
 	key := fmt.Sprintf("user%v", claims.Username)
-	exist, _ := conn.Do("exists", token)
-	if exist.(int64) == 1 {
-		if util.IsExistCache(key) == 0 {
+	if util.IsExistCache(token) == 1 {
+		if util.IsExistCache(key) == 1 {
 			user, err = util.GetUserCache(key)
 			if err != nil {
 				logrus.Info("查询用户信息缓存失败", err)
@@ -98,7 +100,7 @@ func CheckToken(token string) (user common.User, bool bool, err error) {
 			//说明redis没有缓存，改为从数据库读取,并缓存到redis
 			err = dao.DB.Where("name = ?", claims.Username).Find(&user).Error
 			//把user信息缓存到redis
-			go util.SetRedisCache(key, user)
+			util.SetRedisCache(key, user)
 			user, err = util.GetUserCache(key)
 			//每次请求都会刷新token
 			go util.RefreshToken(token)

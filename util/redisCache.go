@@ -61,6 +61,23 @@ func GetFavoriteListCache(userId string) (videoList []common.Video, err error) {
 	return
 }
 
+func GetFeed() (videoList []common.Video, err error) {
+	//从连接池当中获取链接
+	conn := dao.Pool.Get()
+	//先查看redis中是否有数据
+	defer conn.Close()
+	//redis读取缓存
+	rebytes, err := redis.Bytes(conn.Do("get", "feed"))
+	if err != nil {
+		logrus.Info("读取feed%v缓存失败", err)
+	}
+	//进行gob序列化
+	reader := bytes.NewReader(rebytes)
+	dec := gob.NewDecoder(reader)
+	err = dec.Decode(&videoList)
+	return
+}
+
 func GetFollowListCache(userId string) (followList []common.User, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()

@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
+	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -17,6 +18,7 @@ type FeedResponse struct {
 
 func FeedService(c *gin.Context) (err error) {
 	videoList := []common.Video{}
+	key := "feed"
 	u, _ := c.Get("user")
 	e, _ := c.Get("exist")
 	//把数据库里所有视频放在videoList内,且按照创建时间降序排列
@@ -37,21 +39,19 @@ func FeedService(c *gin.Context) (err error) {
 			return
 		}
 		tx.Commit()
+		videoList, _ = feedList(key)
 	} else {
 		user := u.(common.User)
 		exist := e.(bool)
 		if exist {
+			videoList, _ = feedList(key)
 			err = checkUserSetting(user)
 			if err != nil {
 				return err
 			}
 		}
 	}
-	err = dao.DB.Order("created_at desc").Preload("Author").Find(&videoList).Error
-	if err != nil {
-		logrus.Error("获取视频列表失败", err)
-		return
-	}
+
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  common.Response{StatusCode: 0},
 		VideoList: videoList,
@@ -103,4 +103,40 @@ func checkUserSetting(user common.User) (err error) {
 	}
 	tx.Commit()
 	return err
+}
+
+func feedList(key string) (videoList []common.Video, err error) {
+	//先从redis查询
+	if util.IsExistCache(key) == 1 {
+		videoList, err = util.GetFeed()
+		if err != nil {
+			logrus.Info("查询feed列表缓存失败", err)
+		}
+	} else if util.IsExistCache(key) == 0 {
+		//倒序播放30条视频
+		var count int64
+		lockNum := "1"
+		if util.RedisLock(lockNum) == true {
+			err = dao.DB.Where("created_at <= ?", time.Now().Format("2006-01-02 15:04:05")).Order("created_at desc").Preload("Author").Find(&videoList).Limit(30).Count(&count).Error
+			if err != nil {
+				logrus.Error("获取视频列表失败", err)
+				return
+			}
+			if count == 0 {
+				//如果数据库不存在，则缓存一个10秒的空值，防止缓存穿透
+				go util.SetNull(key)
+			} else {
+				//缓存到redis
+				go util.SetRedisCache(key, videoList)
+			}
+			util.RedisUnlock(lockNum)
+		} else {
+			time.Sleep(time.Millisecond * 100)
+			videoList, err = util.GetFeed()
+			if err != nil {
+				logrus.Info("查询feed列表缓存失败", err)
+			}
+		}
+	}
+	return
 }
