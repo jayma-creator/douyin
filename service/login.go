@@ -12,8 +12,9 @@ import (
 func LoginService(c *gin.Context) (err error) {
 	user := common.User{}
 	username := c.Query("username")
-	password := util.GetMD5(c.Query("password"))
-	token, err := util.GetToken(username, password)
+	password := c.Query("password")
+	encodePwd, salt := util.GetMD5WithSalted(password)
+	token, err := util.GetToken(username, encodePwd)
 	if err != nil {
 		logrus.Error("获取token失败", err)
 		return
@@ -31,12 +32,12 @@ func LoginService(c *gin.Context) (err error) {
 		})
 		return
 		//如果token不匹配，提示密码错误
-	} else if count == 1 && password != user.Password {
+	} else if count == 1 && !util.VerifyPassword(password, encodePwd, salt) {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: common.Response{StatusCode: 1, StatusMsg: "密码错误"},
 		})
 		return
-	} else if count == 1 && password == user.Password {
+	} else if count == 1 && util.VerifyPassword(password, encodePwd, salt) {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: common.Response{StatusCode: 0},
 			UserId:   user.Id,

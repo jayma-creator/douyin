@@ -14,8 +14,9 @@ var userIdSequence = int64(2)
 
 func RegisterService(c *gin.Context) (err error) {
 	username := c.Query("username")
-	password := util.GetMD5(c.Query("password"))
-	token, err := util.GetToken(username, password)
+	password := c.Query("password")
+	encodePwd, _ := util.GetMD5WithSalted(password)
+	token, err := util.GetToken(username, encodePwd)
 	if err != nil {
 		logrus.Error("获取token失败", err)
 		return
@@ -37,7 +38,7 @@ func RegisterService(c *gin.Context) (err error) {
 		newUser := common.User{
 			Id:       userIdSequence,
 			Name:     username,
-			Password: password,
+			Password: encodePwd,
 		}
 		//插入数据
 		err = dao.DB.Create(&newUser).Error
