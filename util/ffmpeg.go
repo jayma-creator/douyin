@@ -27,7 +27,7 @@ func exampleReadFrameAsJpeg(inFileName string, frameNum int) io.Reader {
 
 //保存截图
 func GetSnapShot(snapShotName string, videoFilePath string) {
-	reader := exampleReadFrameAsJpeg(videoFilePath, 48)
+	reader := exampleReadFrameAsJpeg(videoFilePath, 96)
 	img, err := imaging.Decode(reader)
 	if err != nil {
 		logrus.Error("保存截图失败", err)

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/RaymondCode/simple-demo/util"
@@ -44,11 +45,12 @@ func FeedService(c *gin.Context) (err error) {
 		user := u.(common.User)
 		exist := e.(bool)
 		if exist {
-			videoList, _ = feedList(key)
 			err = checkUserSetting(user)
 			if err != nil {
 				return err
 			}
+			videoList, _ = feedList(key)
+
 		}
 	}
 
@@ -93,7 +95,6 @@ func checkUserSetting(user common.User) (err error) {
 		return err
 	}
 	for i := 0; i < len(videos); i++ {
-		//videos[i].IsFavorite = true
 		err = tx.Model(&common.Video{}).Where("id = ?", videos[i].Id).Update("is_favorite", true).Error
 		if err != nil {
 			logrus.Error("修改失败", err)
@@ -109,6 +110,7 @@ func feedList(key string) (videoList []common.Video, err error) {
 	//先从redis查询
 	if util.IsExistCache(key) == 1 {
 		videoList, err = util.GetFeed()
+		fmt.Println(videoList, 22222222222)
 		if err != nil {
 			logrus.Info("查询feed列表缓存失败", err)
 		}
@@ -128,6 +130,7 @@ func feedList(key string) (videoList []common.Video, err error) {
 			} else {
 				//缓存到redis
 				go util.SetRedisCache(key, videoList)
+				fmt.Println(videoList, 111111111111)
 			}
 			util.RedisUnlock(lockNum)
 		} else {

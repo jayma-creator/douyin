@@ -28,10 +28,10 @@ func RelationActionService(c *gin.Context) (err error) {
 			actionType := c.Query("action_type")
 			toUserIdStr := c.Query("to_user_id")
 			toUserId, _ := strconv.Atoi(toUserIdStr)
+			key := strconv.Itoa(int(user.Id)) + strconv.Itoa((toUserId)) + "follow"
 			//关注操作
 			if actionType == follow {
 				var count int64
-				key := strconv.Itoa(int(user.Id)) + strconv.Itoa((toUserId)) + "follow"
 				//先查询缓存对应的ID有没有关注对方
 				exist := util.IsExistCache(key)
 				//如果有，则直接返回已经关注
@@ -56,9 +56,26 @@ func RelationActionService(c *gin.Context) (err error) {
 					return
 				}
 			} else if actionType == unfollow {
-				err = unFollow(c, user, toUserId)
-				if err != nil {
+				if util.IsExistCache(key) == 0 {
+					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经取消关注对方，请刷新视频查看"})
 					return
+				} else {
+					var count int64
+					err = dao.DB.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Find(&common.FollowFansRelation{}).Count(&count).Error
+					if err != nil {
+						logrus.Error("查询关注信息失败", err)
+						return
+					}
+					if count == 1 {
+						err = unFollow(c, user, toUserId)
+						if err != nil {
+							return
+						}
+					} else {
+						c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经取消关注对方，请刷新视频查看"})
+						return
+					}
+					go util.DelCache(key)
 				}
 			}
 		}

@@ -26,7 +26,7 @@ func GetMD5WithSalted(password string) (string, string) {
 }
 
 func VerifyPassword(password, encodePwd, salt string) bool {
-	options := &password1.Options{10, 5000, 50, md5.New}
+	options := &password1.Options{10, 5000, 25, md5.New}
 	check := password1.Verify(password, salt, encodePwd, options)
 	return check
 }

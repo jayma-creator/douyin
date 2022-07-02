@@ -37,7 +37,8 @@ func FollowListService(c *gin.Context) (err error) {
 		if err != nil {
 			logrus.Info("查询点赞列表缓存失败", err)
 		}
-	} else if util.IsExistCache(key) == 0 { //缓存不存在，从数据库查询
+	} else if util.IsExistCache(key) == 0 {
+		//缓存不存在，从数据库查询
 		var count int64
 		lockNum := "1"
 		if util.RedisLock(lockNum) == true {
