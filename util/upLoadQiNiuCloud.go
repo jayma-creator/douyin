@@ -12,8 +12,8 @@ import (
 
 //上传视频到七牛云
 func UpLoadQiniuCloud(fileName string) error {
-	accessKey := "rql9AX6S4i0vl5nR6N0CxEQD08bmOIh7vbwKIr4w"
-	secretKey := "HZM9mxeNud7AjWZDlCzlreZRcs7qd4TgxLBjlN5t"
+	accessKey := "XXXXXXXXXXXXXXXXX"
+	secretKey := "XXXXXXXXXXXXXXXXX"
 	bucket := "douyin123456"
 	mac := qbox.NewMac(accessKey, secretKey)
 	path := filepath.Join("./", fileName)
