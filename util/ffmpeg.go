@@ -33,7 +33,7 @@ func GetSnapShot(snapShotName string, videoFilePath string) {
 		logrus.Error("保存截图失败", err)
 		return
 	}
-	err = imaging.Save(img, "./public/"+snapShotName)
+	err = imaging.Save(img, "./"+snapShotName)
 	if err != nil {
 		logrus.Error("保存截图失败", err)
 		return

@@ -110,7 +110,6 @@ func feedList(key string) (videoList []common.Video, err error) {
 	//先从redis查询
 	if util.IsExistCache(key) == 1 {
 		videoList, err = util.GetFeed()
-		fmt.Println(videoList, 22222222222)
 		if err != nil {
 			logrus.Info("查询feed列表缓存失败", err)
 		}

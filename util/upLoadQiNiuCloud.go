@@ -1,25 +1,28 @@
 package util
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"github.com/qiniu/go-sdk/v7/storage"
-	"mime/multipart"
+	"github.com/sirupsen/logrus"
+	"os"
+	"path/filepath"
 )
 
 //上传视频到七牛云
-func upLoadQiniuCloud(file *multipart.FileHeader, fileName string) {
+func UpLoadQiniuCloud(fileName string) error {
 	accessKey := "rql9AX6S4i0vl5nR6N0CxEQD08bmOIh7vbwKIr4w"
 	secretKey := "HZM9mxeNud7AjWZDlCzlreZRcs7qd4TgxLBjlN5t"
 	bucket := "douyin123456"
 	mac := qbox.NewMac(accessKey, secretKey)
-	src, err := file.Open()
+	path := filepath.Join("./", fileName)
+	a, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Println(err)
-		return
+		logrus.Error(err)
+		return err
 	}
-	defer src.Close()
+	//defer a.Close()
 	putPolicy := storage.PutPolicy{
 		Scope: bucket,
 	}
@@ -37,5 +40,6 @@ func upLoadQiniuCloud(file *multipart.FileHeader, fileName string) {
 
 	//key为上传的文件名
 	key := fileName // 上传路径，如果当前目录中已存在相同文件，则返回上传失败错误
-	err = formUploader.Put(context.Background(), &ret, upToken, key, src, file.Size, &putExtra)
+	err = formUploader.Put(context.Background(), &ret, upToken, key, bytes.NewReader(a), int64(len(a)), &putExtra)
+	return err
 }

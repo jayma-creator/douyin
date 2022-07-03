@@ -3,6 +3,7 @@ module github.com/RaymondCode/simple-demo
 go 1.17
 
 require (
+	github.com/anaskhan96/go-password-encoder v0.0.0-20201010210601-c765b799fd72
 	github.com/disintegration/imaging v1.6.2
 	github.com/garyburd/redigo v1.6.3
 	github.com/gin-gonic/gin v1.7.7
@@ -10,6 +11,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/jinzhu/gorm v1.9.16
 	github.com/qiniu/go-sdk/v7 v7.13.0
+	github.com/rabbitmq/amqp091-go v1.3.4
 	github.com/sirupsen/logrus v1.8.1
 	github.com/u2takey/ffmpeg-go v0.4.1
 	gopkg.in/ini.v1 v1.55.0
@@ -18,7 +20,6 @@ require (
 )
 
 require (
-	github.com/anaskhan96/go-password-encoder v0.0.0-20201010210601-c765b799fd72 // indirect
 	github.com/aws/aws-sdk-go v1.38.20 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect

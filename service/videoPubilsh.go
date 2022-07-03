@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-var videoIdSequence = int64(3)
+var videoIdSequence = int64(0)
 
 func PublishService(c *gin.Context) (err error) {
 	u, _ := c.Get("user")
@@ -34,7 +34,7 @@ func PublishService(c *gin.Context) (err error) {
 		//设定文件名
 		finalName := fmt.Sprintf("%d_%s", user.Id, data.Filename)
 		//设定路径public文件夹下
-		saveFile := filepath.Join("./public/", finalName)
+		saveFile := filepath.Join("./", finalName)
 		//保存文件
 		if err = c.SaveUploadedFile(data, saveFile); err != nil {
 			c.JSON(http.StatusOK, common.Response{
@@ -43,23 +43,23 @@ func PublishService(c *gin.Context) (err error) {
 			})
 			return err
 		}
+
 		snapShotName := finalName + "-cover.jpeg"
-		ip := util.GetIp()
 		if err != nil {
 			logrus.Error("获取ip失败", err)
 			return err
 		}
 		util.GetSnapShot(snapShotName, saveFile)
+		go util.Producer(finalName)
+		go util.Producer(snapShotName)
+		go util.Consumer()
 		atomic.AddInt64(&videoIdSequence, 1)
 		video := common.Video{
-			Id:            videoIdSequence,
-			Author:        user,
-			PlayUrl:       "http://" + ip + ":8080/static/" + finalName,
-			CoverUrl:      "http://" + ip + ":8080/static/" + snapShotName,
-			FavoriteCount: 0,
-			CommentCount:  0,
-			IsFavorite:    false,
-			Title:         title,
+			Id:       videoIdSequence,
+			Author:   user,
+			PlayUrl:  "http://rd1qd4izf.hn-bkt.clouddn.com/" + finalName,
+			CoverUrl: "http://rd1qd4izf.hn-bkt.clouddn.com/" + snapShotName,
+			Title:    title,
 		}
 
 		//删除redis缓存
