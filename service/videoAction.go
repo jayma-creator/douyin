@@ -63,28 +63,23 @@ func FavoriteActionService(c *gin.Context) (err error) {
 				}
 				go util.SetRedisNum(key, key)
 			} else if actionType == unLike {
-				if util.IsExistCache(key) == 0 {
+				var count int64
+				//如果缓存没有，则查询数据库
+				err = dao.DB.Where("user_id = ? and video_id = ?", user.Id, videoId).Find(&common.UserFavoriteRelation{}).Count(&count).Error
+				if err != nil {
+					logrus.Error("查询点赞信息失败", err)
+					return
+				}
+				if count == 1 {
+					err = unlikeAct(c, user, videoId)
+					if err != nil {
+						return
+					}
+				} else {
 					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经取消点赞该视频，请刷新视频查看"})
 					return
-				} else {
-					var count int64
-					//如果缓存没有，则查询数据库
-					err = dao.DB.Where("user_id = ? and video_id = ?", user.Id, videoId).Find(&common.UserFavoriteRelation{}).Count(&count).Error
-					if err != nil {
-						logrus.Error("查询点赞信息失败", err)
-						return
-					}
-					if count == 1 {
-						err = unlikeAct(c, user, videoId)
-						if err != nil {
-							return
-						}
-					} else {
-						c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经取消点赞该视频，请刷新视频查看"})
-						return
-					}
-					go util.DelCache(key)
 				}
+				go util.DelCache(key)
 			}
 		}
 	}

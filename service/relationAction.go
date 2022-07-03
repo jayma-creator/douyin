@@ -56,27 +56,23 @@ func RelationActionService(c *gin.Context) (err error) {
 					return
 				}
 			} else if actionType == unfollow {
-				if util.IsExistCache(key) == 0 {
+
+				var count int64
+				err = dao.DB.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Find(&common.FollowFansRelation{}).Count(&count).Error
+				if err != nil {
+					logrus.Error("查询关注信息失败", err)
+					return
+				}
+				if count == 1 {
+					err = unFollow(c, user, toUserId)
+					if err != nil {
+						return
+					}
+				} else {
 					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经取消关注对方，请刷新视频查看"})
 					return
-				} else {
-					var count int64
-					err = dao.DB.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Find(&common.FollowFansRelation{}).Count(&count).Error
-					if err != nil {
-						logrus.Error("查询关注信息失败", err)
-						return
-					}
-					if count == 1 {
-						err = unFollow(c, user, toUserId)
-						if err != nil {
-							return
-						}
-					} else {
-						c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经取消关注对方，请刷新视频查看"})
-						return
-					}
-					go util.DelCache(key)
 				}
+				go util.DelCache(key)
 			}
 		}
 	}
