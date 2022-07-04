@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var videoIdSequence = int64(6)
+var videoIdSequence = int64(0)
 
 func PublishService(c *gin.Context) (err error) {
 	u, _ := c.Get("user")
