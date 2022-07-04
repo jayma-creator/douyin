@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"github.com/RaymondCode/simple-demo/common"
 	"github.com/RaymondCode/simple-demo/dao"
 	"github.com/RaymondCode/simple-demo/util"
@@ -129,7 +128,6 @@ func feedList(key string) (videoList []common.Video, err error) {
 			} else {
 				//缓存到redis
 				go util.SetRedisCache(key, videoList)
-				fmt.Println(videoList, 111111111111)
 			}
 			util.RedisUnlock(lockNum)
 		} else {

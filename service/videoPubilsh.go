@@ -8,18 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"time"
 )
 
-var videoIdSequence = int64(0)
+var videoIdSequence = int64(6)
 
 func PublishService(c *gin.Context) (err error) {
 	u, _ := c.Get("user")
 	e, _ := c.Get("exist")
 	user := u.(common.User)
 	exist := e.(bool)
+
 	if exist {
 		//获取视频文件数据
 		title := c.PostForm("title")
@@ -32,7 +34,7 @@ func PublishService(c *gin.Context) (err error) {
 			return err
 		}
 		//设定文件名
-		finalName := fmt.Sprintf("%d_%s", user.Id, data.Filename)
+		finalName := fmt.Sprintf("%d__%s", user.Id, data.Filename)
 		//设定路径public文件夹下
 		saveFile := filepath.Join("./", finalName)
 		//保存文件
@@ -50,9 +52,9 @@ func PublishService(c *gin.Context) (err error) {
 			return err
 		}
 		util.GetSnapShot(snapShotName, saveFile)
-		go util.Producer(finalName)
-		go util.Producer(snapShotName)
 		go util.Consumer()
+		go util.Producer(snapShotName)
+		go util.Producer(finalName)
 		atomic.AddInt64(&videoIdSequence, 1)
 		video := common.Video{
 			Id:       videoIdSequence,
@@ -81,6 +83,9 @@ func PublishService(c *gin.Context) (err error) {
 			return err
 		}
 
+		//大于10秒客户端会显示超时
+		timeSleep(finalName)
+
 		c.JSON(http.StatusOK, common.Response{
 			StatusCode: 0,
 			StatusMsg:  finalName + " uploaded successfully",
@@ -90,4 +95,17 @@ func PublishService(c *gin.Context) (err error) {
 		return
 	}
 	return
+}
+
+func timeSleep(fileName string) {
+	file, _ := os.Stat("./" + fileName)
+	if file.Size() >= 41943040 { //文件大于40兆，睡眠9秒
+		time.Sleep(time.Second * 9)
+	} else if file.Size() < 41943040 && file.Size() >= 20971520 { //如果文件大于20兆，睡眠7秒
+		time.Sleep(time.Second * 7)
+	} else if file.Size() < 20971520 && file.Size() >= 10485760 { //如果文件大于10兆，睡眠5秒
+		time.Sleep(time.Second * 5)
+	} else if file.Size() < 10485760 && file.Size() >= 5242880 { //如果文件大于5兆，睡眠3秒
+		time.Sleep(time.Second * 3)
+	}
 }

@@ -9,6 +9,7 @@ type Config struct {
 	*GinConfig   `ini:"gin"`
 	*MySQLConfig `ini:"mysql"`
 	*RedisConfig `ini:"redis"`
+	*QiNiuCloud  `ini:"qiniucloud"`
 }
 
 // GinConfig 配置
@@ -30,6 +31,11 @@ type MySQLConfig struct {
 type RedisConfig struct {
 	Address string `ini:"address"`
 	Port    int    `ini:"port"`
+}
+
+type QiNiuCloud struct {
+	AccessKey string `ini:"access_key"`
+	SecretKey string `ini:"secret_key"`
 }
 
 func Init(file string) error {

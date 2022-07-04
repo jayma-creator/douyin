@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 	"os"
@@ -90,10 +89,7 @@ func Consumer() {
 
 	go func() {
 		for d := range msgs {
-			err = UpLoadQiniuCloud(string(d.Body))
-			if err != nil {
-				fmt.Println(err, 222222222222)
-			}
+			UpLoadQiniuCloud(string(d.Body))
 			d.Ack(false)
 			os.Remove("./" + string(d.Body))
 		}
