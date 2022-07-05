@@ -15,7 +15,7 @@ func failOnError(err error, msg string) {
 }
 
 func Producer(fileName string) {
-	conn, err := amqp.Dial(fmt.Sprintf("amqp://guest:guest@%v:5672/", setting.Conf.RabbitMQ.Address))
+	conn, err := amqp.Dial(fmt.Sprintf("amqp://%v:%v@%v:5672/", setting.Conf.RabbitMQ.UserName, setting.Conf.RedisConfig.Password, setting.Conf.RabbitMQ.Address))
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 

@@ -37,7 +37,9 @@ type RedisConfig struct {
 
 //RabbitMQ 配置
 type RabbitMQ struct {
-	Address string `ini:"address"`
+	Address  string `ini:"address"`
+	UserName string `ini:"username"`
+	Password string `ini:"password"`
 }
 
 type QiNiuCloud struct {
