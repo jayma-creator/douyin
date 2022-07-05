@@ -30,8 +30,9 @@ type MySQLConfig struct {
 
 // RedisConfig 数据库配置
 type RedisConfig struct {
-	Address string `ini:"address"`
-	Port    int    `ini:"port"`
+	Address  string `ini:"address"`
+	Port     int    `ini:"port"`
+	Password int    `ini:"password"`
 }
 
 //RabbitMQ 配置
