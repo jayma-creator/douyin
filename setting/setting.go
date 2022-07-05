@@ -9,6 +9,7 @@ type Config struct {
 	*GinConfig   `ini:"gin"`
 	*MySQLConfig `ini:"mysql"`
 	*RedisConfig `ini:"redis"`
+	*RabbitMQ    `ini:"rabbitmq"`
 	*QiNiuCloud  `ini:"qiniucloud"`
 }
 
@@ -31,6 +32,11 @@ type MySQLConfig struct {
 type RedisConfig struct {
 	Address string `ini:"address"`
 	Port    int    `ini:"port"`
+}
+
+//RabbitMQ 配置
+type RabbitMQ struct {
+	Address string `ini:"address"`
 }
 
 type QiNiuCloud struct {

@@ -37,6 +37,7 @@ func UpLoadQiniuCloud(fileName string) {
 	err := resumeUploader.PutFile(context.Background(), &ret, upToken, key, path, &putExtra)
 	if err != nil {
 		logrus.Error(err)
+		return
 	}
 	return
 }

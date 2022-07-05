@@ -15,6 +15,10 @@ func GetCommentCache(videoId string) (commentList []common.Comment, err error) {
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
 	//redis读取缓存
 	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("commentList%v", videoId)))
 	if err != nil {
@@ -32,6 +36,10 @@ func GetPublishListCache(userId string) (videoList []common.Video, err error) {
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
 	//redis读取缓存
 	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("publishList%v", userId)))
 	if err != nil {
@@ -49,6 +57,10 @@ func GetFavoriteListCache(userId string) (videoList []common.Video, err error) {
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
 	//redis读取缓存
 	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("favoriteList%v", userId)))
 	if err != nil {
@@ -66,6 +78,10 @@ func GetFeed() (videoList []common.Video, err error) {
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
 	//redis读取缓存
 	rebytes, err := redis.Bytes(conn.Do("get", "feed"))
 	if err != nil {
@@ -83,6 +99,10 @@ func GetFollowListCache(userId string) (followList []common.User, err error) {
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
 	//redis读取缓存
 	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("followList%v", userId)))
 	if err != nil {
@@ -100,6 +120,10 @@ func GetFanListCache(userId string) (fanList []common.User, err error) {
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
 	//redis读取缓存
 	rebytes, err := redis.Bytes(conn.Do("get", fmt.Sprintf("fansList%v", userId)))
 	if err != nil {
@@ -117,6 +141,10 @@ func GetUserCache(username string) (user common.User, err error) {
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
 	//redis读取缓存
 	rebytes, err := redis.Bytes(conn.Do("get", username))
 	if err != nil {
@@ -134,7 +162,10 @@ func SetRedisCache(key string, data interface{}) (err error) {
 	//缓存到redis
 	conn := dao.Pool.Get()
 	defer conn.Close()
-
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
 	//将数据进行gob序列化
 	var buffer bytes.Buffer
 	ecoder := gob.NewEncoder(&buffer)
@@ -157,6 +188,8 @@ func SetRedisCache(key string, data interface{}) (err error) {
 func SetRedisNum(key, value string) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+
 	randNum := rangeRand(30*60, 60*60)
 	time := 10*60*60 + randNum //10小时
 	_, err := conn.Do("setex", key, time, value)
@@ -170,6 +203,8 @@ func SetRedisNum(key, value string) {
 func DelCache(key string) (err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+
 	_, err = conn.Do("del", key)
 	if err != nil {
 		logrus.Infof("删除%s缓存失败,err:%v", key, err)
@@ -181,6 +216,7 @@ func SetNull(key string) (err error) {
 	//缓存到redis
 	conn := dao.Pool.Get()
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
 
 	//redis缓存数据
 	time := 10 //单位秒
@@ -194,6 +230,8 @@ func SetNull(key string) (err error) {
 func RefreshToken(token string) (err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+
 	time := 1 * 60 * 60 * 10 //单位秒
 	_, err = conn.Do("setex", token, time, 5)
 	if err != nil {
@@ -205,6 +243,8 @@ func RefreshToken(token string) (err error) {
 func IsExistCache(key string) (exists int64) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
+	conn.Do("AUTH", "123456")
+
 	exist, err := conn.Do("exists", key)
 	if err != nil {
 		logrus.Error("查询缓存是否存在失败", err)
@@ -214,11 +254,13 @@ func IsExistCache(key string) (exists int64) {
 }
 
 func RedisLock(key string) (isLock bool) {
-	con := dao.Pool.Get()
-	defer con.Close()
+	conn := dao.Pool.Get()
+	defer conn.Close()
+	conn.Do("AUTH", "123456")
+
 	redisLockTimeout := 10
 	//这里需要redis.String包一下，才能返回redis.ErrNil
-	_, err := redis.String(con.Do("set", key, 1, "ex", redisLockTimeout, "nx"))
+	_, err := redis.String(conn.Do("set", key, 1, "ex", redisLockTimeout, "nx"))
 	if err != nil {
 		if err == redis.ErrNil {
 			err = nil
@@ -231,9 +273,13 @@ func RedisLock(key string) (isLock bool) {
 }
 
 func RedisUnlock(key string) (err error) {
-	con := dao.Pool.Get()
-	defer con.Close()
-	_, err = con.Do("del", key)
+	conn := dao.Pool.Get()
+	defer conn.Close()
+	conn.Do("AUTH", "123456")
+	if err != nil {
+		logrus.Error("密码错误", err)
+	}
+	_, err = conn.Do("del", key)
 	if err != nil {
 		logrus.Error("解锁失败", err)
 		return

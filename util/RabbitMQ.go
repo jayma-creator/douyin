@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+	"github.com/RaymondCode/simple-demo/setting"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 	"os"
@@ -13,7 +15,7 @@ func failOnError(err error, msg string) {
 }
 
 func Producer(fileName string) {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial(fmt.Sprintf("amqp://guest:guest@%v:5672/", setting.Conf.RabbitMQ.Address))
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
