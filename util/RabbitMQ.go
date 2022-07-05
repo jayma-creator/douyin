@@ -50,7 +50,7 @@ func Producer(fileName string) {
 }
 
 func Consumer() {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial(fmt.Sprintf("amqp://%v:%v@%v:5672/", setting.Conf.RabbitMQ.UserName, setting.Conf.RedisConfig.Password, setting.Conf.RabbitMQ.Address))
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
