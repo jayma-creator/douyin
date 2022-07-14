@@ -116,7 +116,7 @@ func GetFollowListCache(userId string) (followList []common.User, err error) {
 	return
 }
 
-func GetFanListCache(userId string) (fanList []common.User, err error) {
+func GetFanListCache(userId string) (fansList []common.User, err error) {
 	//从连接池当中获取链接
 	conn := dao.Pool.Get()
 	//先查看redis中是否有数据
@@ -133,7 +133,7 @@ func GetFanListCache(userId string) (fanList []common.User, err error) {
 	//进行gob序列化
 	reader := bytes.NewReader(rebytes)
 	dec := gob.NewDecoder(reader)
-	err = dec.Decode(&fanList)
+	err = dec.Decode(&fansList)
 	return
 }
 

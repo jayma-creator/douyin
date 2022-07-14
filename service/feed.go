@@ -26,13 +26,13 @@ func FeedService(c *gin.Context) (err error) {
 	if u == nil && e == nil {
 		tx := dao.DB.Begin()
 		//每次获取先把点赞图标和用户关注改为false
-		err = tx.Model(common.Video{}).Where("is_favorite = ?", true).Update("is_favorite", false).Error
+		err = dao.UpdateInitLikeInfo(tx)
 		if err != nil {
 			logrus.Error("修改失败", err)
 			tx.Rollback()
 			return
 		}
-		err = tx.Model(common.User{}).Where("is_follow = ?", true).Update("is_follow", false).Error
+		err = dao.UpdateInitFollowInfo(tx)
 		if err != nil {
 			logrus.Error("修改失败", err)
 			tx.Rollback()
@@ -52,7 +52,6 @@ func FeedService(c *gin.Context) (err error) {
 
 		}
 	}
-
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  common.Response{StatusCode: 0},
 		VideoList: videoList,
@@ -64,43 +63,37 @@ func FeedService(c *gin.Context) (err error) {
 //匹配当前登录的账号是否已关注别的账号，是否点赞视频
 func checkUserSetting(user common.User) (err error) {
 	tx := dao.DB.Begin()
-	//匹配当前登录的账号是否已关注别的账号
 	users := []common.User{}
-	err = tx.Table("users").
-		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", user.Id).
-		Find(&users).Error
+	//匹配当前登录的账号是否已关注别的账号
+	users, err = dao.QueryIsFollow(tx, user)
 	if err != nil {
 		logrus.Error("修改失败", err)
 		tx.Rollback()
 		return err
 	}
-	for i := 0; i < len(users); i++ {
-		err = tx.Model(&common.User{}).Where("id = ?", users[i].Id).Update("is_follow", true).Error
-		if err != nil {
-			logrus.Error("修改失败", err)
-			tx.Rollback()
-			return err
-		}
+	err = dao.UpdateIsFollowInfo(tx, users)
+	if err != nil {
+		logrus.Error("修改失败", err)
+		tx.Rollback()
+		return err
 	}
 
 	//匹配当前登录的账号是否已点赞视频
 	videos := []common.Video{}
-	err = tx.Table("videos").
-		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", user.Id).
-		Find(&videos).Error
+	videos, err = dao.QueryIsLike(tx, user)
 	if err != nil {
 		logrus.Error("修改失败", err)
 		tx.Rollback()
 		return err
 	}
-	for i := 0; i < len(videos); i++ {
-		err = tx.Model(&common.Video{}).Where("id = ?", videos[i].Id).Update("is_favorite", true).Error
-		if err != nil {
-			logrus.Error("修改失败", err)
-			tx.Rollback()
-			return err
-		}
+
+	err = dao.UpdateIsLike(tx, videos)
+	if err != nil {
+		logrus.Error("修改失败", err)
+		tx.Rollback()
+		return err
 	}
+
 	tx.Commit()
 	return err
 }
@@ -113,11 +106,10 @@ func feedList(key string) (videoList []common.Video, err error) {
 			logrus.Info("查询feed列表缓存失败", err)
 		}
 	} else if util.IsExistCache(key) == 0 {
-		//倒序播放30条视频
 		var count int64
 		lockNum := "1"
 		if util.RedisLock(lockNum) == true {
-			err = dao.DB.Where("created_at <= ?", time.Now().Format("2006-01-02 15:04:05")).Order("created_at desc").Preload("Author").Find(&videoList).Limit(30).Count(&count).Error
+			videoList, count, err = dao.QueryFeed()
 			if err != nil {
 				logrus.Error("获取视频列表失败", err)
 				return

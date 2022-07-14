@@ -20,9 +20,9 @@ func LoginService(c *gin.Context) (err error) {
 		return
 	}
 	var count int64
-	err = dao.DB.Where("name = ? ", username).Find(&user).Count(&count).Error
+	user, count, err = dao.QueryUsernameIsExit(username)
 	if err != nil {
-		logrus.Error("查询name失败", err)
+		logrus.Error("查询username失败", err)
 		return
 	}
 	//如果没有对应的name，返回错误信息“用户不存在”

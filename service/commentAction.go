@@ -7,7 +7,6 @@ import (
 	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 	"time"
@@ -60,6 +59,7 @@ func CommentListService(c *gin.Context) (err error) {
 	videoId := c.Query("video_id")
 	key := fmt.Sprintf("commentList%v", videoId)
 	var commentList []common.Comment
+	var count int64
 	//先查询缓存
 	if util.IsExistCache(key) == 1 {
 		commentList, err = util.GetCommentCache(videoId)
@@ -67,11 +67,11 @@ func CommentListService(c *gin.Context) (err error) {
 			logrus.Info("查询评论列表缓存失败", err)
 		}
 	} else if util.IsExistCache(key) == 0 {
-		var count int64
 		lockNum := "1"
 		if util.RedisLock(lockNum) == true {
-			err = dao.DB.Where("video_id = ?", videoId).Preload("User").Preload("Video").Preload("Video.Author").Order("created_at desc").Find(&commentList).Count(&count).Error
+			commentList, count, err = dao.QueryCommentList(videoId)
 			if err != nil {
+				logrus.Error(err)
 				return
 			}
 			if count == 0 {
@@ -87,6 +87,7 @@ func CommentListService(c *gin.Context) (err error) {
 			commentList, err = util.GetCommentCache(videoId)
 			if err != nil {
 				logrus.Info("查询评论列表缓存失败", err)
+				return
 			}
 		}
 	}
@@ -118,7 +119,7 @@ func comment(c *gin.Context, user common.User, videoId int) (err error) {
 		return
 	}
 	//video的comment_count+1
-	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count + ?", "1")).Error
+	err = dao.UpdateCommentAdd(tx, videoId)
 	if err != nil {
 		logrus.Error("修改评论数失败", err)
 		tx.Rollback()
@@ -150,14 +151,14 @@ func comment(c *gin.Context, user common.User, videoId int) (err error) {
 func deleteComment(c *gin.Context, videoId int) (err error) {
 	tx := dao.DB.Begin()
 	commentId := c.Query("comment_id")
-	err = tx.Where("id = ?", commentId).Delete(&common.Comment{}).Error
+	err = dao.DeleteComment(tx, commentId)
 	if err != nil {
 		logrus.Error("删除评论信息失败", err)
 		tx.Rollback()
 		return
 	}
 	//video的comment_count-1
-	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Update("comment_count", gorm.Expr("comment_count - ?", "1")).Error
+	err = dao.UpdateCommentDel(tx, videoId)
 	if err != nil {
 		logrus.Error("修改评论信息失败", err)
 		tx.Rollback()

@@ -23,7 +23,7 @@ func RegisterService(c *gin.Context) (err error) {
 	}
 	user := common.User{}
 	var count int64
-	err = dao.DB.Where("name = ? ", username).Find(&user).Count(&count).Error
+	user, count, err = dao.QueryUsernameIsExit(username)
 	if err != nil {
 		logrus.Error("查询name失败", err)
 		return

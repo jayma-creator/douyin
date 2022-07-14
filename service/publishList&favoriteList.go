@@ -26,8 +26,7 @@ func FavoriteListService(c *gin.Context) (err error) {
 		var count int64
 		lockNum := "1"
 		if util.RedisLock(lockNum) == true {
-			err = dao.DB.Table("videos").
-				Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", userId).Preload("Author").Find(&videoList).Count(&count).Error
+			videoList, count, err = dao.QueryLikeList(userId)
 			if err != nil {
 				logrus.Error("获取点赞列表失败", err)
 				return
@@ -73,7 +72,7 @@ func PublishListService(c *gin.Context) (err error) {
 		var count int64
 		lockNum := "1"
 		if util.RedisLock(lockNum) == true {
-			err = dao.DB.Where("author_id = ?", userId).Preload("Author").Find(&videoList).Count(&count).Error
+			videoList, count, err = dao.QueryPublishList(userId)
 			if err != nil {
 				logrus.Error("获取发布列表失败", err)
 				return

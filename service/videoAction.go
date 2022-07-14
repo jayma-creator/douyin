@@ -7,7 +7,6 @@ import (
 	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 	"time"
@@ -28,6 +27,7 @@ func FavoriteActionService(c *gin.Context) (err error) {
 	videoIdStr := c.Query("video_id")
 	actionType := c.Query("action_type")
 	videoId, _ := strconv.Atoi(videoIdStr)
+	var count int64
 	u, _ := c.Get("user")
 	e, _ := c.Get("exist")
 	if u != nil && e != nil {
@@ -36,7 +36,6 @@ func FavoriteActionService(c *gin.Context) (err error) {
 		key := strconv.Itoa(int(user.Id)) + strconv.Itoa(videoId) + "favorite"
 		if exist {
 			if actionType == like {
-				var count int64
 				//先查询缓存对应的ID有没有点赞该视频
 				exist := util.IsExistCache(key)
 				//如果有，则直接返回已经关注
@@ -45,39 +44,36 @@ func FavoriteActionService(c *gin.Context) (err error) {
 					return
 				} else {
 					//如果缓存没有，则查询数据库
-					err = dao.DB.Where("user_id = ? and video_id = ?", user.Id, videoId).Find(&common.UserFavoriteRelation{}).Count(&count).Error
-					if err != nil {
-						logrus.Error("查询点赞信息失败", err)
-						return
-					}
-				}
-				//如果数据库没有，则执行关注操作，并把关注信息缓存到redis
-				if count == 0 {
-					err = likeAct(c, user, videoId)
+					count, err = dao.QueryLike(user, videoId)
 					if err != nil {
 						return
 					}
-				} else {
-					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经点赞该视频，请刷新视频查看"})
-					return
+					//如果数据库没有，则执行关注操作，并把关注信息缓存到redis
+					if count == 0 {
+						err = likeAct(c, user, videoId)
+						if err != nil {
+							return err
+						}
+					} else {
+						c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经点赞该视频，请刷新视频查看"})
+						return err
+					}
+					go util.SetRedisNum(key, key)
 				}
-				go util.SetRedisNum(key, key)
 			} else if actionType == unLike {
-				var count int64
-				//如果缓存没有，则查询数据库
-				err = dao.DB.Where("user_id = ? and video_id = ?", user.Id, videoId).Find(&common.UserFavoriteRelation{}).Count(&count).Error
+				//查询数据库
+				count, err = dao.QueryLike(user, videoId)
 				if err != nil {
-					logrus.Error("查询点赞信息失败", err)
-					return
+					logrus.Error(err)
 				}
 				if count == 1 {
 					err = unlikeAct(c, user, videoId)
 					if err != nil {
-						return
+						return err
 					}
 				} else {
 					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经取消点赞该视频，请刷新视频查看"})
-					return
+					return err
 				}
 				go util.DelCache(key)
 			}
@@ -101,7 +97,7 @@ func likeAct(c *gin.Context, user common.User, videoId int) (err error) {
 	}
 	//把video结构体里的IsFavorite改为true
 	//video的favorite_count+1
-	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": true, "favorite_count": gorm.Expr("favorite_count + ?", "1")}).Error
+	err = dao.UpdateLikeAdd(tx, videoId)
 	if err != nil {
 		logrus.Error("修改视频信息失败", err)
 		tx.Rollback()
@@ -130,20 +126,19 @@ func likeAct(c *gin.Context, user common.User, videoId int) (err error) {
 //取消赞
 func unlikeAct(c *gin.Context, user common.User, videoId int) (err error) {
 	tx := dao.DB.Begin()
-	err = tx.Where("user_id = ? and video_id = ?", user.Id, videoId).Delete(&common.UserFavoriteRelation{}).Error
+	err = dao.DeleteLike(tx, user, videoId)
 	if err != nil {
 		logrus.Error("删除视频信息失败", err)
 		tx.Rollback()
 		return
 	}
-	//把video结构体里的IsFavorite改为false
-	//video的favorite_count-1
-	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": false, "favorite_count": gorm.Expr("favorite_count - ?", "1")}).Error
+	err = dao.UpdateLikeDel(tx, videoId)
 	if err != nil {
-		logrus.Error("修改视频信息失败", err)
+		logrus.Error(err)
 		tx.Rollback()
 		return
 	}
+
 	//删除redis缓存
 	err = util.DelCache("feed")
 	err = util.DelCache(fmt.Sprintf("favoriteList%v", user.Id))

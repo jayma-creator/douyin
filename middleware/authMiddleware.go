@@ -98,7 +98,7 @@ func CheckToken(token string) (user common.User, bool bool, err error) {
 			}
 		} else {
 			//说明redis没有缓存，改为从数据库读取,并缓存到redis
-			err = dao.DB.Where("name = ?", claims.Username).Find(&user).Error
+			user, _, err = dao.QueryUsernameIsExit(claims.Username)
 			//把user信息缓存到redis
 			util.SetRedisCache(key, user)
 			user, err = util.GetUserCache(key)

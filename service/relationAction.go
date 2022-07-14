@@ -7,7 +7,6 @@ import (
 	"github.com/RaymondCode/simple-demo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 	"time"
@@ -39,7 +38,7 @@ func RelationActionService(c *gin.Context) (err error) {
 					c.JSON(http.StatusOK, common.Response{StatusCode: 1, StatusMsg: "已经关注对方，请刷新视频查看"})
 					return
 				} else { //如果缓存没有，则查询数据库
-					err = dao.DB.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Find(&common.FollowFansRelation{}).Count(&count).Error
+					count, err = dao.QueryFollow(user, toUserId)
 					if err != nil {
 						logrus.Error("查询关注信息失败", err)
 						return
@@ -56,9 +55,8 @@ func RelationActionService(c *gin.Context) (err error) {
 					return
 				}
 			} else if actionType == unfollow {
-
 				var count int64
-				err = dao.DB.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Find(&common.FollowFansRelation{}).Count(&count).Error
+				count, err = dao.QueryFollow(user, toUserId)
 				if err != nil {
 					logrus.Error("查询关注信息失败", err)
 					return
@@ -100,13 +98,13 @@ func followAct(c *gin.Context, user common.User, toUserId int, key string) (err 
 	}
 	//修改对方用户的is_follow字段为true，表示已关注
 	//修改当前ID的user结构体里的关注数follow_count+1，对方ID的粉丝数follower_count+1
-	err = tx.Model(&common.User{}).Where("id = ?", user.Id).Update("follow_count", gorm.Expr("follow_count + ?", "1")).Error
+	err = dao.UpdateFollowUserAdd(tx, user)
 	if err != nil {
 		logrus.Error("修改关注信息失败", err)
 		tx.Rollback()
 		return
 	}
-	err = tx.Model(&common.User{}).Where("id = ?", toUserId).Updates(map[string]interface{}{"follower_count": gorm.Expr("follower_count + ?", "1"), "is_follow": true}).Error
+	err = dao.UpdateFollowFansAdd(tx, toUserId)
 	if err != nil {
 		logrus.Error("修改关注信息失败", err)
 		tx.Rollback()
@@ -131,19 +129,19 @@ func followAct(c *gin.Context, user common.User, toUserId int, key string) (err 
 //取关操作
 func unFollow(c *gin.Context, user common.User, toUserId int) (err error) {
 	tx := dao.DB.Begin()
-	err = tx.Where("follow_id = ? and follower_id = ?", user.Id, toUserId).Delete(&common.FollowFansRelation{}).Error
+	err = dao.DeleteFollow(tx, user, toUserId)
 	if err != nil {
 		logrus.Error("删除关注信息失败", err)
 		tx.Rollback()
 		return
 	}
-	err = tx.Model(&common.User{}).Where("id = ?", user.Id).Update("follow_count", gorm.Expr("follow_count - ?", "1")).Error
+	err = dao.UpdateFollowUserDel(tx, user)
 	if err != nil {
 		logrus.Error("修改关注信息失败", err)
 		tx.Rollback()
 		return
 	}
-	err = tx.Model(&common.User{}).Where("id = ?", toUserId).Updates(map[string]interface{}{"follower_count": gorm.Expr("follower_count - ?", "1"), "is_follow": false}).Error
+	err = dao.UpdateFollowFansDel(tx, toUserId)
 	if err != nil {
 		logrus.Error("修改关注信息失败", err)
 		tx.Rollback()

@@ -42,9 +42,7 @@ func FollowListService(c *gin.Context) (err error) {
 		var count int64
 		lockNum := "1"
 		if util.RedisLock(lockNum) == true {
-			err = dao.DB.Table("users").
-				Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).
-				Find(&followList).Count(&count).Error
+			followList, count, err = dao.QueryFollowList(userId)
 			if err != nil {
 				logrus.Error("获取关注列表失败", err)
 				return
@@ -91,9 +89,7 @@ func FanListService(c *gin.Context) (err error) {
 		lockNum := "1"
 		if util.RedisLock(lockNum) == true {
 			//缓存不存在，从数据库查询
-			err = dao.DB.Table("users").
-				Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
-				Find(&fansList).Count(&count).Error
+			fansList, count, err = dao.QueryFanList(userId)
 			if err != nil {
 				logrus.Error("获取粉丝列表失败", err)
 				return

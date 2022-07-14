@@ -37,7 +37,6 @@ func PublishService(c *gin.Context) (err error) {
 		finalName := fmt.Sprintf("%d__%s", user.Id, data.Filename)
 		//设定路径public文件夹下
 		saveFile := filepath.Join("./", finalName)
-		fmt.Println(saveFile)
 		//保存文件
 		if err = c.SaveUploadedFile(data, saveFile); err != nil {
 			c.JSON(http.StatusOK, common.Response{
