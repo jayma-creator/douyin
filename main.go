@@ -44,7 +44,7 @@ func main() {
 	router.InitRouter(r)
 	err = r.Run(fmt.Sprintf(":%d", setting.Conf.GinConfig.Port))
 	if err != nil {
-		fmt.Printf("server startup failed, err:%v\n", err)
+		logrus.Errorf("server startup failed, err:%v\n", err)
 	}
 
 }
