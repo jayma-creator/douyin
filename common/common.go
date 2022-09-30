@@ -5,14 +5,12 @@ import (
 	"time"
 )
 
-var count int64
-
 type Response struct {
 	StatusCode int32  `json:"status_code"`
 	StatusMsg  string `json:"status_msg,omitempty"`
 }
 
-//添加了PublisherToken字段，来判别视频属于谁发布的
+// 添加了PublisherToken字段，来判别视频属于谁发布的
 type Video struct {
 	Id            int64          `json:"id,omitempty"`
 	AuthorId      int64          `json:"author_id"`
@@ -32,7 +30,7 @@ type Comment struct {
 	Id         int64          `json:"id,omitempty"`
 	UserId     int64          `json:"user_id,omitempty"`
 	User       User           `json:"user" gorm:"foreignKey:UserId"`
-	VideoId    int64          `json:"video_id"`
+	VideoId    int64          `json:"video_id" gorm:"index:idx"`
 	Video      Video          `json:"video" gorm:"foreignKey:VideoId"`
 	Content    string         `json:"content,omitempty"`
 	CreateDate string         `json:"create_date,omitempty"`
@@ -53,7 +51,7 @@ type User struct {
 	DeletedAt     gorm.DeletedAt `json:"deleted_at"`
 }
 
-//粉丝和关注的关系表
+// 粉丝和关注的关系表
 type FollowFansRelation struct {
 	Id         int64          `json:"id,omitempty"`
 	FollowId   int64          `json:"follow_id" gorm:"index:follow_fan"`
@@ -65,7 +63,7 @@ type FollowFansRelation struct {
 	DeletedAt  gorm.DeletedAt `json:"deleted_at" `
 }
 
-//用户点赞视频关系表
+// 用户点赞视频关系表
 type UserFavoriteRelation struct {
 	Id        int64          `json:"id,omitempty"`
 	UserId    int64          `json:"user_id" gorm:"index:user_video"`
