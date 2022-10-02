@@ -15,7 +15,7 @@ func QueryFollow(user common.User, toUserId int) (count int64, err error) {
 func QueryLike(user common.User, videoId int) (count int64, err error) {
 	err = DB.Where("user_id = ? and video_id = ?", user.Id, videoId).Find(&common.UserFavoriteRelation{}).Count(&count).Error
 	if err != nil {
-		logrus.Error("查询点赞信息失败", err)
+		logrus.Error("查询信息失败", err)
 		return
 	}
 	return

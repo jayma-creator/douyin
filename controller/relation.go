@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//关注操作
+// 关注
 func RelationAction(c *gin.Context) {
 	err := service.RelationActionService(c)
 	if err != nil {
@@ -16,7 +16,7 @@ func RelationAction(c *gin.Context) {
 	}
 }
 
-//关注列表
+// 关注
 func FollowList(c *gin.Context) {
 	err := service.FollowListService(c)
 	if err != nil {
@@ -25,7 +25,7 @@ func FollowList(c *gin.Context) {
 	}
 }
 
-//粉丝列表
+// 粉丝
 func FollowerList(c *gin.Context) {
 	err := service.FanListService(c)
 	if err != nil {

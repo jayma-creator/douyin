@@ -37,7 +37,7 @@ func UpdateLikeAdd(tx *gorm.DB, videoId int) (err error) {
 func UpdateLikeDel(tx *gorm.DB, videoId int) (err error) {
 	err = tx.Model(&common.Video{}).Where("id = ?", videoId).Updates(map[string]interface{}{"is_favorite": false, "favorite_count": gorm.Expr("favorite_count - ?", "1")}).Error
 	if err != nil {
-		logrus.Error("修改视频信息失败", err)
+		logrus.Error("修改信息失败", err)
 	}
 	return
 }
