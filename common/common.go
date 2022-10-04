@@ -15,7 +15,7 @@ type Video struct {
 	Id            int64          `json:"id,omitempty"`
 	AuthorId      int64          `json:"author_id"`
 	Author        User           `json:"author" gorm:"foreignKey:AuthorId"`
-	PlayUrl       string         `json:"play_url,omitempty" gorm:"NOT NULL"`
+	PlayUrl       string         `json:"play_url,omitempty" gorm:"NOT NLL"`
 	CoverUrl      string         `json:"cover_url,omitempty" gorm:"NOT NULL"`
 	FavoriteCount int64          `json:"favorite_count,omitempty" gorm:"NOT NULL"`
 	CommentCount  int64          `json:"comment_count,omitempty" gorm:"NOT NULL"`
