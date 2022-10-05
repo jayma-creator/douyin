@@ -92,10 +92,13 @@ func CheckToken(token string) (user common.User, bool bool, err error) {
 	key := fmt.Sprintf("user%v", claims.Username)
 	if util.IsExistCache(token) == 1 {
 		if util.IsExistCache(key) == 1 {
+			//提取用户信息
 			user, err = util.GetUserCache(key)
 			if err != nil {
 				logrus.Info("查询用户信息缓存失败", err)
 			}
+			//每次请求都会刷新token
+			go util.RefreshToken(token)
 		} else {
 			//说明redis没有缓存，改为从数据库读取,并缓存到redis
 			user, _, err = dao.QueryUsernameIsExit(claims.Username)
