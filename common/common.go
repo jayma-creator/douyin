@@ -30,7 +30,7 @@ type Comment struct {
 	Id         int64          `json:"id,omitempty"`
 	UserId     int64          `json:"user_id,omitempty"`
 	User       User           `json:"user" gorm:"foreignKey:UserId"`
-	VideoId    int64          `json:"video_id" gorm:"index:idx"`
+	VideoId    int64          `json:"video_id,omitempty"`
 	Video      Video          `json:"video" gorm:"foreignKey:VideoId"`
 	Content    string         `json:"content,omitempty" gorm:"NOT NULL"`
 	CreateDate string         `json:"create_date,omitempty" gorm:"NOT NULL"`
