@@ -31,7 +31,7 @@ func RelationActionService(c *gin.Context) (err error) {
 			//关注操作
 			if actionType == follow {
 				var count int64
-				//先查询缓存对应的ID有没有关注对方
+				//先查询缓存对应的ID是否关注对方
 				exist := util.IsExistCache(key)
 				//如果有，则直接返回已经关注
 				if exist == 1 {
@@ -77,7 +77,7 @@ func RelationActionService(c *gin.Context) (err error) {
 	return
 }
 
-//关注操作
+// 关注操作
 func followAct(c *gin.Context, user common.User, toUserId int, key string) (err error) {
 	tx := dao.DB.Begin()
 	//如果当前用户点击关注自己，返回错误提示
@@ -126,7 +126,7 @@ func followAct(c *gin.Context, user common.User, toUserId int, key string) (err 
 	return
 }
 
-//取关操作
+// 取关操作
 func unFollow(c *gin.Context, user common.User, toUserId int) (err error) {
 	tx := dao.DB.Begin()
 	err = dao.DeleteFollow(tx, user, toUserId)
