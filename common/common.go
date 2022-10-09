@@ -53,24 +53,24 @@ type User struct {
 
 // 粉丝和关注的关系表
 type FollowFansRelation struct {
-	Id         int64          `json:"id,omitempty"`
-	FollowId   int64          `json:"follow_id" gorm:"index:follow_fan"`
-	FollowerId int64          `json:"follower_id" gorm:"index:follow_fan"`
-	Follow     User           `json:"follow" gorm:"foreignKey:FollowId"`
-	Follower   User           `json:"follower" gorm:"foreignKey:FollowerId"`
-	CreatedAt  time.Time      `json:"created_at" `
-	UpdatedAt  time.Time      `json:"updated_at"`
-	DeletedAt  gorm.DeletedAt `json:"deleted_at" `
+	Id         int64     `json:"id,omitempty"`
+	FollowId   int64     `json:"follow_id" gorm:"index:follow_fan"`
+	FollowerId int64     `json:"follower_id" gorm:"index:follow_fan"`
+	Follow     User      `json:"follow" gorm:"foreignKey:FollowId"`
+	Follower   User      `json:"follower" gorm:"foreignKey:FollowerId"`
+	Status     bool      `json:"status,omitempty" gorm:"NOT NULL"`
+	CreatedAt  time.Time `json:"created_at" `
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // 用户点赞视频关系表
 type UserFavoriteRelation struct {
-	Id        int64          `json:"id,omitempty"`
-	UserId    int64          `json:"user_id" gorm:"index:user_video"`
-	VideoId   int64          `json:"video_id" gorm:"index:user_video"`
-	User      User           `json:"follow,omitempty" gorm:"foreignKey:UserId"`
-	Video     Video          `json:"video" gorm:"foreignKey:VideoId"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at"`
+	Id        int64     `json:"id,omitempty"`
+	UserId    int64     `json:"user_id" gorm:"index:user_video"`
+	VideoId   int64     `json:"video_id" gorm:"index:user_video"`
+	User      User      `json:"follow,omitempty" gorm:"foreignKey:UserId"`
+	Video     Video     `json:"video" gorm:"foreignKey:VideoId"`
+	Status    bool      `json:"status,omitempty" gorm:"NOT NULL"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
