@@ -28,7 +28,7 @@ func QueryCommentList(videoId string) (commentList []common.Comment, count int64
 
 func QueryIsFollow(tx *gorm.DB, user common.User) (users []common.User, err error) {
 	err = tx.Table("users").
-		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", user.Id).
+		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and status = ?", user.Id, true).
 		Find(&users).Error
 	return
 }
@@ -71,6 +71,6 @@ func QueryPublishList(userId string) (videoList []common.Video, count int64, err
 
 func QueryLikeList(userId string) (videoList []common.Video, count int64, err error) {
 	err = DB.Table("videos").
-		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", userId).Preload("Author").Find(&videoList).Count(&count).Error
+		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and status = ?", userId, true).Preload("Author").Find(&videoList).Count(&count).Error
 	return
 }
