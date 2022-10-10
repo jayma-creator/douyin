@@ -58,7 +58,7 @@ type FollowFansRelation struct {
 	FollowerId int64     `json:"follower_id" gorm:"index:follow_fan"`
 	Follow     User      `json:"follow" gorm:"foreignKey:FollowId"`
 	Follower   User      `json:"follower" gorm:"foreignKey:FollowerId"`
-	Status     bool      `json:"status,omitempty" gorm:"NOT NULL"`
+	Status     bool      `json:"status,omitempty" gorm:"NOT NULL;index"`
 	CreatedAt  time.Time `json:"created_at" `
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -70,7 +70,7 @@ type UserFavoriteRelation struct {
 	VideoId   int64     `json:"video_id" gorm:"index:user_video"`
 	User      User      `json:"follow,omitempty" gorm:"foreignKey:UserId"`
 	Video     Video     `json:"video" gorm:"foreignKey:VideoId"`
-	Status    bool      `json:"status,omitempty" gorm:"NOT NULL"`
+	Status    bool      `json:"status,omitempty" gorm:"NOT NULL;index"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

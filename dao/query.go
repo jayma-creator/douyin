@@ -35,7 +35,7 @@ func QueryIsFollow(tx *gorm.DB, user common.User) (users []common.User, err erro
 
 func QueryIsLike(tx *gorm.DB, user common.User) (videos []common.Video, err error) {
 	err = tx.Table("videos").
-		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and user_favorite_relations.deleted_at is null", user.Id).
+		Joins("join user_favorite_relations on video_id = videos.id and user_id = ? and status = ?", user.Id, true).
 		Find(&videos).Error
 	return
 }
@@ -47,14 +47,14 @@ func QueryFeed() (videoList []common.Video, count int64, err error) {
 
 func QueryFollowList(userId string) (followList []common.User, count int64, err error) {
 	err = DB.Table("users").
-		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and follow_fans_relations.deleted_at is null", userId).
+		Joins("join follow_fans_relations on follower_id = users.id and follow_id = ? and status = ?", userId, true).
 		Find(&followList).Count(&count).Error
 	return
 }
 
 func QueryFanList(userId string) (fansList []common.User, count int64, err error) {
 	err = DB.Table("users").
-		Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and follow_fans_relations.deleted_at is null", userId).
+		Joins("join follow_fans_relations on follow_id = users.id and follower_id = ? and status = ?", userId, true).
 		Find(&fansList).Count(&count).Error
 	return
 }
