@@ -26,7 +26,7 @@ type UserResponse struct {
 	User common.User `json:"user"`
 }
 
-// 关注列
+// 关注列表
 func FollowListService(c *gin.Context) (err error) {
 	userId := c.Query("user_id")
 	key := fmt.Sprintf("followList%v", userId)
