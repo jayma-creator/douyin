@@ -13,7 +13,7 @@ type Response struct {
 // 添加了PublisherToken字段，来判别视频属于谁发布的
 type Video struct {
 	Id            int64          `json:"id,omitempty"`
-	AuthorId      int64          `json:"author_id"`
+	AuthorId      int64          `json:"author_id" gorm:"NOT NULL"`
 	Author        User           `json:"author" gorm:"foreignKey:AuthorId"`
 	PlayUrl       string         `json:"play_url,omitempty" gorm:"NOT NULL"`
 	CoverUrl      string         `json:"cover_url,omitempty" gorm:"NOT NULL"`
@@ -28,7 +28,7 @@ type Video struct {
 
 type Comment struct {
 	Id         int64          `json:"id,omitempty"`
-	UserId     int64          `json:"user_id,omitempty"`
+	UserId     int64          `json:"user_id,omitempty" gorm:"NOT NULL"`
 	User       User           `json:"user" gorm:"foreignKey:UserId"`
 	VideoId    int64          `json:"video_id,omitempty"`
 	Video      Video          `json:"video" gorm:"foreignKey:VideoId"`
@@ -54,8 +54,8 @@ type User struct {
 // 粉丝和关注的关系表
 type FollowFansRelation struct {
 	Id         int64     `json:"id,omitempty"`
-	FollowId   int64     `json:"follow_id" gorm:"index:follow_fan"`
-	FollowerId int64     `json:"follower_id" gorm:"index:follow_fan"`
+	FollowId   int64     `json:"follow_id" gorm:"NOT NULL;index:follow_fan"`
+	FollowerId int64     `json:"follower_id" gorm:"NOT NULL;index:follow_fan"`
 	Follow     User      `json:"follow" gorm:"foreignKey:FollowId"`
 	Follower   User      `json:"follower" gorm:"foreignKey:FollowerId"`
 	Status     bool      `json:"status,omitempty" gorm:"NOT NULL;index"`
@@ -66,8 +66,8 @@ type FollowFansRelation struct {
 // 用户点赞视频关系表
 type UserFavoriteRelation struct {
 	Id        int64     `json:"id,omitempty"`
-	UserId    int64     `json:"user_id" gorm:"index:user_video"`
-	VideoId   int64     `json:"video_id" gorm:"index:user_video"`
+	UserId    int64     `json:"user_id" gorm:"NOT NULL;index:user_video"`
+	VideoId   int64     `json:"video_id" gorm:"NOT NULL;index:user_video"`
 	User      User      `json:"follow,omitempty" gorm:"foreignKey:UserId"`
 	Video     Video     `json:"video" gorm:"foreignKey:VideoId"`
 	Status    bool      `json:"status,omitempty" gorm:"NOT NULL;index"`
