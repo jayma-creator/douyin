@@ -51,7 +51,7 @@ type User struct {
 	DeletedAt     gorm.DeletedAt `json:"deleted_at"`
 }
 
-// 关注表
+// 粉丝和关注的关系表
 type FollowFansRelation struct {
 	Id         int64     `json:"id,omitempty"`
 	FollowId   int64     `json:"follow_id" gorm:"NOT NULL;index:follow_fan"`
