@@ -25,7 +25,7 @@ func LoginService(c *gin.Context) (err error) {
 		logrus.Error("查询username失败", err)
 		return
 	}
-	//如果没有对应的name，返回错误信息“用户不存在”
+	//如果没有对应的账号，返回错误信息“用户不存在”
 	if count == 0 {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: common.Response{StatusCode: 1, StatusMsg: "用户不存在"},
