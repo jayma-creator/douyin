@@ -158,7 +158,7 @@ func GetUserCache(username string) (user common.User, err error) {
 	return
 }
 
-//设置缓存
+// 设置缓存
 func SetRedisCache(key string, data interface{}) (err error) {
 	//缓存到redis
 	conn := dao.Pool.Get()
@@ -200,7 +200,7 @@ func SetRedisNum(key, value string) {
 
 }
 
-//删除缓存
+// 删除缓存
 func DelCache(key string) (err error) {
 	conn := dao.Pool.Get()
 	defer conn.Close()
@@ -219,7 +219,7 @@ func SetNull(key string) (err error) {
 	defer conn.Close()
 	conn.Do("AUTH", setting.Conf.RedisConfig.Password)
 
-	//redis缓存数据
+	//缓存数据
 	time := 10 //单位秒
 	_, err = conn.Do("setex", key, time, "")
 	if err != nil {
