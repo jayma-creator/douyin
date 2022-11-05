@@ -27,7 +27,7 @@ func RegisterService(c *gin.Context) (err error) {
 	if err != nil {
 		logrus.Error("查询name失败", err)
 		return
-	} //如果查询到已存在对应的name，返回错误信息“已存在”
+	} //如果查询到已经存在对应的name，返回错误信息“已存在”
 	if count == 1 {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: common.Response{StatusCode: 1, StatusMsg: "已存在用户，请更换用户名"},
